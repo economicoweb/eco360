@@ -1,0 +1,1949 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Econômico Gestão</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --g:#1a7a4a;--g2:#2d9e62;--g3:#e8f5ee;
+  --r:#c0392b;--r2:#fdecea;
+  --am:#d68910;--am2:#fef9e7;
+  --bl:#1a5276;--bl2:#eaf2ff;
+  --dk:#FFC600;--dk2:#e6b200;
+  --gray:#f4f6f8;--gray2:#e8edf2;--gray3:#c8d4de;
+  --t:#111827;--t2:#4b5563;--t3:#9ca3af;
+  --w:#fff;--r10:10px;--r14:14px;
+  --sh:0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06);
+}
+body{font-family:'DM Sans',sans-serif;background:#eef1f5;color:var(--t);min-height:100vh;overflow:hidden}
+
+/* LOGIN */
+#loginScreen{position:fixed;inset:0;background:linear-gradient(135deg,#cc9e00 0%,#FFC600 60%,#ffe066 100%);display:flex;align-items:center;justify-content:center;z-index:100}
+.lbox{background:rgba(255,255,255,.97);border-radius:20px;padding:40px 36px;width:380px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.llogo{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:3px;color:#cc9e00;margin-bottom:24px}
+.lbox h2{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;margin-bottom:4px}
+.lbox p{font-size:13px;color:var(--t3);margin-bottom:24px}
+.lf{margin-bottom:14px}
+.lf label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--t2);display:block;margin-bottom:5px}
+.lf input{width:100%;padding:11px 14px;border:1.5px solid var(--gray2);border-radius:9px;font-size:14px;font-family:inherit;color:var(--t);background:#fff;transition:border .15s}
+.lf input:focus{outline:none;border-color:var(--g2)}
+.lbtn{width:100%;margin-top:8px;padding:13px;background:var(--g);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s}
+.lbtn:hover{background:#156040}
+.lhint{margin-top:14px;font-size:12px;color:var(--t3);text-align:center;background:var(--gray);border-radius:8px;padding:10px}
+.lerr{font-size:13px;color:var(--r);margin-bottom:8px;display:none}
+
+/* LAYOUT */
+#app{display:flex;height:100vh;overflow:hidden}
+
+/* SIDEBAR */
+.sb{width:230px;background:var(--dk);display:flex;flex-direction:column;flex-shrink:0}
+.sb-logo{padding:22px 18px 18px;border-bottom:1px solid rgba(0,0,0,.12)}
+.sb-logo h1{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#111}
+.sb-logo span{font-size:10px;color:rgba(0,0,0,.45);text-transform:uppercase;letter-spacing:1.2px}
+.sb-nav{flex:1;overflow-y:auto;padding:10px 0}
+.sb-sec{padding:12px 18px 4px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:rgba(0,0,0,.4)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:10px 18px;cursor:pointer;font-size:13px;color:rgba(0,0,0,.6);transition:all .15s;border-right:3px solid transparent}
+.sb-item:hover{background:rgba(0,0,0,.08);color:#111}
+.sb-item.active{background:rgba(0,0,0,.15);color:#111;border-right-color:#111;font-weight:600}
+.sb-item svg{width:15px;height:15px;flex-shrink:0}
+.sb-user{padding:14px 18px;border-top:1px solid rgba(0,0,0,.12)}
+.sb-user .role{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(0,0,0,.4)}
+.sb-user .name{font-size:13px;color:#111;margin-top:2px;font-weight:600}
+.sb-out{font-size:11px;color:rgba(0,0,0,.4);cursor:pointer;margin-top:6px;display:inline-block}
+.sb-out:hover{color:#111}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{background:var(--w);border-bottom:1px solid var(--gray2);padding:0 26px;height:56px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.topbar-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700}
+.topbar-r{display:flex;gap:10px;align-items:center}
+.badge{font-size:11px;padding:4px 12px;border-radius:20px;font-weight:600}
+.badge-admin{background:#fef3cd;color:#856404}
+.badge-op{background:#d1f0e0;color:#1a5c34}
+.badge-prev{background:#fde8e8;color:#922b21}
+.tdate{font-size:12px;color:var(--t3)}
+.content{flex:1;overflow-y:auto;padding:26px}
+
+/* PANELS */
+.panel{display:none}.panel.active{display:block}
+
+/* METRICS */
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.mc{background:var(--w);border:1px solid var(--gray2);border-radius:var(--r14);padding:18px;box-shadow:var(--sh)}
+.mc .lbl{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--t3);margin-bottom:6px}
+.mc .val{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;line-height:1}
+.mc .sub{font-size:12px;color:var(--t3);margin-top:5px}
+.pbar{height:6px;background:var(--gray2);border-radius:3px;overflow:hidden;margin-top:8px}
+.pfill{height:100%;border-radius:3px;transition:width .3s}
+.up{color:var(--g)}.dn{color:var(--r)}
+
+/* CARD */
+.card{background:var(--w);border:1px solid var(--gray2);border-radius:var(--r14);padding:20px;box-shadow:var(--sh)}
+.card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.card-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{text-align:left;padding:9px 12px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);background:var(--gray);border-bottom:1px solid var(--gray2)}
+td{padding:10px 12px;border-bottom:1px solid var(--gray2)}
+tr:last-child td{border:none}
+tbody tr:hover td{background:#fafcfa}
+.st{display:inline-block;font-size:10.5px;padding:3px 9px;border-radius:20px;font-weight:600}
+.st-ok{background:var(--g3);color:var(--g)}
+.st-warn{background:var(--am2);color:var(--am)}
+.st-err{background:var(--r2);color:var(--r)}
+.st-info{background:var(--bl2);color:var(--bl)}
+
+/* TABS */
+.tabs{display:flex;gap:3px;background:var(--gray);padding:4px;border-radius:10px;width:fit-content;margin-bottom:20px;flex-wrap:wrap}
+.tab{padding:7px 16px;border-radius:7px;font-size:12.5px;font-weight:500;cursor:pointer;color:var(--t2);transition:all .15s}
+.tab.on{background:var(--w);color:var(--t);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+
+/* CHECKLIST */
+.cl-wrap{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.cl-item{display:flex;align-items:flex-start;gap:11px;padding:12px 14px;border:1px solid var(--gray2);border-radius:var(--r10);cursor:pointer;transition:all .15s;background:var(--w)}
+.cl-item:hover{border-color:var(--g2);background:#fafffe}
+.cl-item.done{opacity:.55;background:var(--g3)}
+.cl-item.done .cl-text{text-decoration:line-through;color:var(--t3)}
+.chkbox{width:20px;height:20px;border-radius:5px;border:2px solid var(--gray3);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;transition:all .15s;font-size:11px;color:transparent}
+.chkbox.on{background:var(--g2);border-color:var(--g2);color:#fff}
+.cl-text{font-size:13px;line-height:1.4;flex:1}
+.cl-cat{font-size:10px;background:var(--gray);color:var(--t3);padding:2px 7px;border-radius:20px;white-space:nowrap;margin-top:1px;flex-shrink:0}
+.cl-prog{background:var(--w);border:1px solid var(--gray2);border-radius:var(--r10);padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:16px}
+.cl-prog-bar{flex:1;height:8px;background:var(--gray2);border-radius:4px;overflow:hidden}
+.cl-prog-fill{height:100%;background:var(--g2);border-radius:4px;transition:width .3s}
+.cl-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+
+/* FORMS */
+.frow{display:grid;gap:12px;margin-bottom:12px}
+.c2{grid-template-columns:1fr 1fr}
+.c3{grid-template-columns:1fr 1fr 1fr}
+.c1{grid-template-columns:1fr}
+.fg label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);display:block;margin-bottom:5px}
+.fg input,.fg select,.fg textarea{width:100%;padding:9px 12px;border:1.5px solid var(--gray2);border-radius:8px;font-size:13px;font-family:inherit;color:var(--t);background:#fff;transition:border .15s}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--g2)}
+.fg textarea{resize:vertical}
+.btn-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.btn{padding:9px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:all .15s}
+.btn-p{background:var(--g);color:#fff}.btn-p:hover{background:#156040}
+.btn-s{background:var(--gray);color:var(--t2);border:1px solid var(--gray2)}.btn-s:hover{background:var(--gray2)}
+.btn-d{background:var(--r2);color:var(--r);border:1px solid #fac5c0}.btn-d:hover{background:#f9b8b2}
+.btn-sm{padding:6px 12px;font-size:12px}
+
+/* ALERT */
+.alert{padding:12px 16px;border-radius:9px;font-size:13px;margin-bottom:16px;display:flex;gap:10px;align-items:center}
+.alert-ok{background:var(--g3);color:var(--g);border:1px solid #a8d5b5}
+.alert-info{background:var(--bl2);color:var(--bl);border:1px solid #b0cce8}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center}
+.modal-box{background:#fff;border-radius:16px;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.3);max-height:90vh;overflow-y:auto}
+.modal-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:18px}
+.modal-err{font-size:13px;color:var(--r);margin-top:8px;display:none}
+
+.erow td{text-align:center;color:var(--t3);padding:28px!important;font-size:13px}
+</style>
+</head>
+<body>
+
+<!-- ═══ LOGIN ═══ -->
+<div id="loginScreen">
+  <div class="lbox">
+    <div class="llogo">Econômico Gestão</div>
+    <h2>Bem-vindo</h2>
+    <p>Acesse com seu e-mail e senha</p>
+    <div class="lf"><label>E-mail</label><input id="lEmail" type="text" placeholder="seu@email.com"/></div>
+    <div class="lf"><label>Senha</label><input id="lPass" type="password" placeholder="Sua senha" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+    <div class="lerr" id="lErr">❌ E-mail ou senha incorretos.</div>
+    <button class="lbtn" onclick="doLogin()">Entrar no Sistema</button>
+    <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--t3)">v1.0.6</div>
+  </div>
+</div>
+
+<!-- ═══ APP ═══ -->
+<div id="app" style="display:none">
+  <div class="sb">
+    <div class="sb-logo"><h1>Econômico</h1><span>Gestão de Loja</span></div>
+    <div class="sb-nav">
+      <div class="sb-sec">Principal</div>
+      <div class="sb-item active" id="nav-dashboard" onclick="nav('dashboard',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard
+      </div>
+      <div class="sb-sec">Operacional</div>
+      <div class="sb-item" onclick="nav('checklist',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>Checklist
+      </div>
+      <div class="sb-item" onclick="nav('inventario',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>Inventário
+      </div>
+      <div class="sb-item" onclick="nav('perdas',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Lançar Perdas
+      </div>
+
+      <div class="sb-sec" id="sb-adm-sec" style="display:none">Administração</div>
+      <div class="sb-item" id="nav-central" style="display:none" onclick="nav('central',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Central de Resultados
+      </div>
+      <div class="sb-item" id="nav-relat" style="display:none" onclick="nav('relatorios',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Relatórios
+      </div>
+      <div class="sb-item" id="nav-users" style="display:none" onclick="nav('usuarios',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="23" y2="8"/><line x1="21" y1="6" x2="21" y2="10"/></svg>Usuários
+      </div>
+    </div>
+    <div class="sb-user">
+      <div class="role" id="sbRole">Operador</div>
+      <div class="name" id="sbName">—</div>
+      <span class="sb-out" onclick="doLogout()">Sair do sistema</span>
+      <div style="font-size:9px;color:rgba(0,0,0,.3);margin-top:5px">v1.0.6</div>
+      <div style="font-size:9px;color:rgba(0,0,0,.3);margin-top:6px">v1.0.6</div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="pageTitle">Dashboard</div>
+      <div class="topbar-r">
+        <span class="badge badge-op" id="tbBadge">Operador</span>
+        <span class="tdate" id="tbDate"></span>
+      </div>
+    </div>
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div id="panel-dashboard" class="panel active">
+        <div class="g4">
+          <div class="mc"><div class="lbl">Checklist Hoje</div><div class="val up" id="dck-val">0/0</div><div class="pbar"><div class="pfill" id="dck-bar" style="width:0%;background:var(--g2)"></div></div><div class="sub" id="dck-pct">0%</div></div>
+          <div class="mc"><div class="lbl">Perdas do Dia</div><div class="val dn" id="dp-val">R$ 0,00</div><div class="sub" id="dp-cnt">0 registros</div></div>
+          <div class="mc"><div class="lbl">Divergências Inv.</div><div class="val" style="color:var(--am)" id="ddiv-val">0</div><div class="sub">itens com diferença</div></div>
+          <div class="mc"><div class="lbl">Itens Inventariados</div><div class="val" id="dinv-val">0</div><div class="sub">hoje</div></div>
+        </div>
+        <div class="g2">
+          <div class="card"><div class="card-hdr"><div class="card-title">Perdas por Categoria</div></div><div style="position:relative;height:210px"><canvas id="chartPerdas"></canvas></div></div>
+          <div class="card"><div class="card-hdr"><div class="card-title">Checklist por Turno</div></div><div style="position:relative;height:210px"><canvas id="chartCheck"></canvas></div></div>
+        </div>
+        <div class="card"><div class="card-hdr"><div class="card-title">Últimas Ocorrências</div></div>
+          <table><thead><tr><th>Hora</th><th>Tipo</th><th>Descrição</th><th>Setor</th><th>Operador</th><th>Status</th></tr></thead>
+          <tbody id="d-hist"><tr class="erow"><td colspan="6">Nenhuma ocorrência registrada hoje</td></tr></tbody></table>
+        </div>
+      </div>
+
+      <!-- CHECKLIST -->
+      <div id="panel-checklist" class="panel">
+        <!-- Modo: executar ou gerenciar -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div class="tabs" style="margin-bottom:0" id="cl-mode-tabs">
+            <div class="tab on" onclick="setCLMode('executar',this)">✅ Executar</div>
+            <div class="tab" id="tab-gerenciar" onclick="setCLMode('gerenciar',this)">⚙️ Gerenciar</div>
+          </div>
+          <div id="cl-add-btn" style="display:none">
+            <button class="btn btn-p btn-sm" onclick="abrirModalCL()">+ Novo Checklist</button>
+          </div>
+        </div>
+
+        <!-- MODO EXECUTAR -->
+        <div id="cl-mode-executar">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div class="tabs" style="margin-bottom:0" id="cl-tabs"></div>
+            <div style="font-size:12px;color:var(--t3);background:var(--gray);padding:5px 12px;border-radius:20px;border:1px solid var(--gray2)" id="cl-data-hoje"></div>
+          </div>
+          <div id="cl-content"></div>
+        </div>
+
+        <!-- MODO GERENCIAR -->
+        <div id="cl-mode-gerenciar" style="display:none">
+          <div class="tabs" id="cl-criar-tabs" style="flex-wrap:wrap">
+            <div class="tab on" onclick="filtrarCL('todos',this)">Todos</div>
+            <div class="tab" onclick="filtrarCL('Açougue',this)">Açougue</div>
+            <div class="tab" onclick="filtrarCL('Hortifruti',this)">Hortifruti</div>
+            <div class="tab" onclick="filtrarCL('Frios',this)">Frios</div>
+            <div class="tab" onclick="filtrarCL('Padaria',this)">Padaria</div>
+            <div class="tab" onclick="filtrarCL('Mercearia',this)">Mercearia</div>
+            <div class="tab" onclick="filtrarCL('Prevenção',this)">Prevenção</div>
+            <div class="tab" onclick="filtrarCL('Gerência',this)">Gerência</div>
+          </div>
+          <div id="cl-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px"></div>
+        </div>
+      </div>
+
+      <!-- INVENTÁRIO -->
+      <div id="panel-inventario" class="panel">
+        <div id="inv-alert" class="alert alert-ok" style="display:none">✅ Inventário enviado para a central!</div>
+        <div class="g2" style="margin-bottom:16px">
+          <div class="card"><div class="card-hdr"><div class="card-title">Novo Lançamento</div></div>
+            <div class="frow c2"><div class="fg"><label>Código EAN</label><input id="inv-cod" type="text" placeholder="Ex: 7891234567890"/></div><div class="fg"><label>Descrição</label><input id="inv-desc" type="text" placeholder="Ex: Arroz Tio João 5kg"/></div></div>
+            <div class="frow c3"><div class="fg"><label>Setor</label><select id="inv-setor"><option>Mercearia</option><option>Perecíveis</option><option>Frios</option><option>Hortifruti</option><option>Açougue</option><option>Padaria</option><option>Bebidas</option><option>Limpeza</option></select></div><div class="fg"><label>Qtd. Sistema</label><input id="inv-sist" type="number" placeholder="0" min="0"/></div><div class="fg"><label>Qtd. Física</label><input id="inv-fis" type="number" placeholder="0" min="0"/></div></div>
+            <div class="frow c2"><div class="fg"><label>Unidade</label><select id="inv-unid"><option>UN</option><option>KG</option><option>CX</option><option>FD</option></select></div><div class="fg"><label>Observação</label><input id="inv-obs" type="text" placeholder="Opcional"/></div></div>
+            <div class="btn-row"><button class="btn btn-p" onclick="addInv()">+ Incluir</button><button class="btn btn-s" onclick="enviarInv()">Enviar para Central ↗</button></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div class="mc"><div class="lbl">Itens Lançados</div><div class="val" id="inv-cnt">0</div></div>
+            <div class="mc"><div class="lbl">Divergências</div><div class="val dn" id="inv-div">0</div></div>
+            <div class="mc"><div class="lbl">Saldo Total</div><div class="val" id="inv-saldo" style="font-size:20px">0 un</div></div>
+          </div>
+        </div>
+        <div class="card"><div class="card-hdr"><div class="card-title">Itens Inventariados</div><button class="btn btn-s btn-sm" onclick="limparInv()">Limpar</button></div>
+          <table><thead><tr><th>Código</th><th>Descrição</th><th>Setor</th><th>Sistema</th><th>Físico</th><th>Dif.</th><th>Obs</th><th>Status</th></tr></thead>
+          <tbody id="inv-tbody"><tr class="erow"><td colspan="8">Nenhum item lançado ainda</td></tr></tbody></table>
+        </div>
+      </div>
+
+      <!-- PERDAS -->
+      <div id="panel-perdas" class="panel">
+        <div id="p-alert" class="alert alert-ok" style="display:none">✅ Perda registrada!</div>
+        <div class="g2" style="margin-bottom:16px">
+          <div class="card"><div class="card-hdr"><div class="card-title">Registrar Perda</div></div>
+            <div class="frow c2"><div class="fg"><label>Produto</label><input id="p-prod" type="text" placeholder="Descrição do produto"/></div><div class="fg"><label>Código EAN</label><input id="p-cod" type="text" placeholder="Opcional"/></div></div>
+            <div class="frow c2"><div class="fg"><label>Setor</label><select id="p-setor"><option>Perecíveis</option><option>Frios</option><option>Hortifruti</option><option>Açougue</option><option>Padaria</option><option>Mercearia</option><option>Bebidas</option><option>Limpeza</option></select></div><div class="fg"><label>Motivo</label><select id="p-motivo"><option>Vencimento</option><option>Avaria</option><option>Furto</option><option>Erro de Processo</option><option>Devolução</option><option>Deterioração</option><option>Outro</option></select></div></div>
+            <div class="frow c2"><div class="fg"><label>Quantidade</label><input id="p-qtd" type="number" placeholder="0" min="0"/></div><div class="fg"><label>Valor Unitário (R$)</label><input id="p-valor" type="number" placeholder="0.00" step="0.01" min="0"/></div></div>
+            <div class="frow c1"><div class="fg"><label>Observação</label><textarea id="p-obs" rows="2" placeholder="Detalhes..."></textarea></div></div>
+            <div class="btn-row"><button class="btn btn-p" onclick="addPerda()">Registrar Perda</button></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div class="mc"><div class="lbl">Total Perdas — Hoje</div><div class="val dn" id="p-total">R$ 0,00</div></div>
+            <div class="mc"><div class="lbl">Registros Hoje</div><div class="val" id="p-cnt">0</div></div>
+            <div class="mc"><div class="lbl">Maior Perda</div><div class="val dn" id="p-maior" style="font-size:18px">—</div><div class="sub" id="p-maior-prod">—</div></div>
+          </div>
+        </div>
+        <div class="card"><div class="card-hdr"><div class="card-title">Registros de Perdas</div><button class="btn btn-s btn-sm" onclick="limparPerdas()">Limpar</button></div>
+          <table><thead><tr><th>Hora</th><th>Produto</th><th>Setor</th><th>Motivo</th><th>Qtd</th><th>Unit.</th><th>Total</th><th>Status</th></tr></thead>
+          <tbody id="p-tbody"><tr class="erow"><td colspan="8">Nenhuma perda registrada hoje</td></tr></tbody></table>
+        </div>
+      </div>
+
+      <!-- CENTRAL DE RESULTADOS -->
+      <div id="panel-central" class="panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <div><div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700">Central de Resultados</div><div style="font-size:13px;color:var(--t3);margin-top:2px">Checklists enviados pela equipe</div></div>
+          <button class="btn btn-d btn-sm" onclick="limparCentral()">Limpar histórico</button>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+          <div class="fg" style="min-width:160px"><label>Filtrar setor</label><select id="cf-setor" onchange="renderCentral()"><option value="">Todos</option><option>Açougue</option><option>Hortifruti</option><option>Frios</option><option>Padaria</option><option>Mercearia</option><option>Bebidas</option><option>Prevenção</option><option>Geral</option><option>Gerência</option></select></div>
+          <div class="fg" style="min-width:160px"><label>Filtrar operador</label><select id="cf-op" onchange="renderCentral()"><option value="">Todos</option></select></div>
+        </div>
+        <div class="g4" style="margin-bottom:16px">
+          <div class="mc"><div class="lbl">Envios</div><div class="val" id="c-total">0</div></div>
+          <div class="mc"><div class="lbl">100% Completos</div><div class="val up" id="c-comp">0</div></div>
+          <div class="mc"><div class="lbl">Incompletos</div><div class="val" style="color:var(--am)" id="c-incomp">0</div></div>
+          <div class="mc"><div class="lbl">Média</div><div class="val" id="c-media">—</div></div>
+        </div>
+        <div class="card"><div class="card-hdr"><div class="card-title">Resultados Recebidos</div></div>
+          <table><thead><tr><th>Data/Hora</th><th>Checklist</th><th>Setor</th><th>Operador</th><th>Perfil</th><th>%</th><th>Itens</th><th>Ver</th></tr></thead>
+          <tbody id="c-tbody"><tr class="erow"><td colspan="8">Nenhum resultado ainda</td></tr></tbody></table>
+        </div>
+      </div>
+
+      <!-- RELATÓRIOS -->
+      <div id="panel-relatorios" class="panel">
+        <div class="g4" style="margin-bottom:20px">
+          <div class="mc"><div class="lbl">Perdas — Mês</div><div class="val dn" id="rel-perdas">R$ 0,00</div></div>
+          <div class="mc"><div class="lbl">Checklists Enviados</div><div class="val up" id="rel-checklists">0</div></div>
+          <div class="mc"><div class="lbl">Inventariados</div><div class="val" id="rel-inv">0</div></div>
+          <div class="mc"><div class="lbl">Divergências</div><div class="val" style="color:var(--am)" id="rel-div">0</div></div>
+        </div>
+        <div class="g2" style="margin-bottom:14px">
+          <div class="card"><div class="card-hdr"><div class="card-title">Perdas — Últimos 6 meses</div></div><div style="position:relative;height:220px"><canvas id="chartEv"></canvas></div></div>
+          <div class="card"><div class="card-hdr"><div class="card-title">Por Setor</div></div><div style="position:relative;height:220px"><canvas id="chartSet"></canvas></div></div>
+        </div>
+        <div class="card"><div class="card-hdr"><div class="card-title">Desempenho da Equipe — Checklists Enviados</div></div>
+          <table><thead><tr><th>Operador</th><th>Perfil</th><th>Enviados</th><th>100% Completos</th><th>Média %</th><th>Último Envio</th></tr></thead>
+          <tbody id="rel-equipe-tbody">
+            <tr class="erow"><td colspan="6">Nenhum checklist enviado ainda</td></tr>
+          </tbody></table>
+        </div>
+      </div>
+
+      <!-- USUÁRIOS -->
+      <div id="panel-usuarios" class="panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <div><div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700">Cadastro de Usuários</div><div style="font-size:13px;color:var(--t3);margin-top:2px">Gerencie os acessos da equipe</div></div>
+          <button class="btn btn-p" onclick="abrirModalUser()">+ Novo Usuário</button>
+        </div>
+        <div class="tabs" id="u-filter-tabs">
+          <div class="tab on" onclick="filtrarUsers('todos',this)">Todos</div>
+          <div class="tab" onclick="filtrarUsers('gerencia',this)">Gerência</div>
+          <div class="tab" onclick="filtrarUsers('operator',this)">Operadores</div>
+          <div class="tab" onclick="filtrarUsers('prevencao',this)">Prevenção</div>
+        </div>
+        <div class="card"><div class="card-hdr"><div class="card-title">Usuários</div></div>
+          <table><thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Setor</th><th>Cargo</th><th>Status</th><th>Ações</th></tr></thead>
+          <tbody id="u-tbody"></tbody></table>
+        </div>
+        <div class="g3" style="margin-top:14px">
+          <div class="mc"><div class="lbl">Gerências</div><div class="val" id="u-ger">0</div></div>
+          <div class="mc"><div class="lbl">Operadores</div><div class="val" id="u-op">0</div></div>
+          <div class="mc"><div class="lbl">Prevenção</div><div class="val" id="u-prev">0</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL USUÁRIO -->
+<div class="modal-bg" id="modal-user">
+  <div class="modal-box" style="width:460px">
+    <div class="modal-title" id="mu-title">Novo Usuário</div>
+    <div class="frow c2"><div class="fg"><label>Nome completo</label><input id="u-nome" type="text" placeholder="Ex: João Silva"/></div><div class="fg"><label>E-mail (login)</label><input id="u-email" type="text" placeholder="joao@economico.com"/></div></div>
+    <div class="frow c2"><div class="fg"><label>Senha</label><input id="u-senha" type="password" placeholder="Mínimo 4 caracteres"/></div><div class="fg"><label>Confirmar senha</label><input id="u-senha2" type="password" placeholder="Repita a senha"/></div></div>
+    <div class="frow c2">
+      <div class="fg"><label>Perfil</label><select id="u-perfil"><option value="gerencia">👔 Gerência de Loja</option><option value="operator">🛒 Operador</option><option value="prevencao">🔍 Aux. Prevenção</option></select></div>
+      <div class="fg"><label>Setor</label><select id="u-setor"><option>Gerência</option><option>Mercearia</option><option>Perecíveis</option><option>Frios</option><option>Hortifruti</option><option>Açougue</option><option>Padaria</option><option>Bebidas</option><option>Caixa</option><option>Prevenção</option><option>Geral</option></select></div>
+    </div>
+    <div class="frow c1"><div class="fg"><label>Cargo / Observação</label><input id="u-cargo" type="text" placeholder="Ex: Encarregado de Mercearia"/></div></div>
+    <div class="modal-err" id="mu-err"></div>
+    <div class="btn-row"><button class="btn btn-p" onclick="salvarUser()">Salvar</button><button class="btn btn-s" onclick="fecharModalUser()">Cancelar</button></div>
+  </div>
+</div>
+
+<!-- MODAL CHECKLIST -->
+<div class="modal-bg" id="modal-cl">
+  <div class="modal-box" style="width:500px">
+    <div class="modal-title" id="mcl-title">Novo Checklist</div>
+    <div class="frow c2"><div class="fg"><label>Nome</label><input id="ncl-nome" type="text" placeholder="Ex: Açougue — Tarde"/></div><div class="fg"><label>Setor</label><select id="ncl-setor"><option>Açougue</option><option>Hortifruti</option><option>Frios</option><option>Padaria</option><option>Mercearia</option><option>Bebidas</option><option>Limpeza</option><option>Caixa</option><option>Prevenção</option><option>Gerência</option><option>Geral</option></select></div></div>
+    <div class="frow c2"><div class="fg"><label>Perfil que executa</label><select id="ncl-perfil"><option value="operator">Operador</option><option value="prevencao">Prevenção</option><option value="gerencia">Gerência</option><option value="todos">Todos</option></select></div><div class="fg"><label>Turno</label><select id="ncl-turno"><option>Abertura</option><option>Manhã</option><option>Tarde</option><option>Noite</option><option>Fechamento</option><option>Qualquer</option></select></div></div>
+    <div class="frow c1"><div class="fg"><label>Descrição</label><input id="ncl-desc" type="text" placeholder="Objetivo deste checklist"/></div></div>
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin:14px 0 8px">Itens do Checklist</div>
+    <div id="ncl-itens-wrap" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>
+    <div style="display:flex;flex-direction:column;gap:6px;padding:12px;background:var(--gray);border-radius:9px">
+      <div style="display:flex;gap:8px">
+        <input id="ncl-item-txt" type="text" placeholder="Ex: Verificar temperatura da câmara fria..." style="flex:1;padding:8px 12px;border:1.5px solid var(--gray2);border-radius:8px;font-size:13px;font-family:inherit;background:#fff" onkeydown="if(event.key==='Enter')addItemNCL()"/>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="ncl-item-obs" type="text" placeholder="Observação / instrução extra (opcional)" style="flex:1;padding:8px 12px;border:1.5px solid var(--gray2);border-radius:8px;font-size:13px;font-family:inherit;background:#fff"/>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--t2);cursor:pointer;white-space:nowrap;padding:8px 10px;background:#fff;border:1.5px solid var(--gray2);border-radius:8px">
+          <input id="ncl-item-foto" type="checkbox" style="width:15px;height:15px;accent-color:var(--g)"/> 📷 Exige foto
+        </label>
+        <button class="btn btn-p btn-sm" onclick="addItemNCL()">+ Adicionar</button>
+      </div>
+    </div>
+    <div class="modal-err" id="mcl-err"></div>
+    <div class="btn-row"><button class="btn btn-p" onclick="salvarCL()">Salvar Checklist</button><button class="btn btn-s" onclick="fecharModalCL()">Cancelar</button></div>
+  </div>
+</div>
+
+<!-- MODAL JÁ ENVIADO HOJE -->
+<div class="modal-bg" id="modal-ja-enviado">
+  <div class="modal-box" style="width:400px;text-align:center">
+    <div style="font-size:40px;margin-bottom:12px">✅</div>
+    <div class="modal-title" style="justify-content:center;margin-bottom:8px">Checklist já enviado hoje!</div>
+    <div style="font-size:13px;color:var(--t2);margin-bottom:6px">O checklist <strong id="env-ja-enviado-nome"></strong> já foi enviado para a central hoje.</div>
+    <div style="font-size:12px;color:var(--t3);margin-bottom:20px">Cada checklist pode ser enviado apenas uma vez por dia por operador.</div>
+    <button class="btn btn-p" onclick="document.getElementById('modal-ja-enviado').style.display='none'">Entendido</button>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR ENVIO -->
+<div class="modal-bg" id="modal-enviar">
+  <div class="modal-box" style="width:420px">
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:40px;margin-bottom:8px" id="env-icon">✅</div>
+      <div style="font-family:'Syne',sans-serif;font-size:17px;font-weight:800;margin-bottom:4px" id="env-titulo"></div>
+      <div style="font-size:13px;color:var(--t3);margin-bottom:12px" id="env-msg"></div>
+    </div>
+    <!-- Resumo de progresso -->
+    <div style="background:var(--gray);border-radius:10px;padding:16px;margin-bottom:18px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:13px;font-weight:600;color:var(--t2)" id="env-itens"></span>
+        <span style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800" id="env-pct"></span>
+      </div>
+      <div style="height:8px;background:var(--gray2);border-radius:4px;overflow:hidden">
+        <div id="env-bar-fill" style="height:100%;border-radius:4px;transition:width .3s;width:0%"></div>
+      </div>
+    </div>
+    <div style="font-size:13px;color:var(--t2);text-align:center;margin-bottom:18px">Deseja confirmar o envio para a central?</div>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button class="btn btn-p" onclick="confirmarEnviar()">✉ Sim, enviar</button>
+      <button class="btn btn-s" onclick="cancelarEnviar()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL LIMPAR CENTRAL -->
+<div class="modal-bg" id="modal-limpar-central">
+  <div class="modal-box" style="width:360px;text-align:center">
+    <div style="font-size:36px;margin-bottom:12px">🗑️</div>
+    <div class="modal-title">Limpar histórico?</div>
+    <div style="font-size:13px;color:var(--t2);margin-bottom:20px">Todos os resultados enviados serão apagados.<br><span style="font-size:12px;color:var(--t3)">Esta ação não pode ser desfeita.</span></div>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button class="btn btn-d" onclick="confirmarLimparCentral()">Sim, limpar</button>
+      <button class="btn btn-s" onclick="document.getElementById('modal-limpar-central').style.display='none'">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RESET CHECKLIST -->
+<div class="modal-bg" id="modal-reset">
+  <div class="modal-box" style="width:480px">
+    <!-- Step 1: Selecionar itens -->
+    <div id="reset-step1">
+      <div class="modal-title">↺ Resetar itens do checklist</div>
+      <div style="font-size:13px;color:var(--t2);margin-bottom:16px">Selecione quais itens deseja resetar em: <strong id="reset-cl-nome"></strong></div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+        <button class="btn btn-s btn-sm" onclick="selecionarTodosReset()">Selecionar todos</button>
+      </div>
+      <div id="reset-itens-wrap" style="display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto;margin-bottom:14px"></div>
+      <div id="reset-err" style="font-size:12px;color:var(--r);margin-bottom:10px;display:none">Selecione pelo menos 1 item.</div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-p" onclick="confirmarReset()">Continuar →</button>
+        <button class="btn btn-s" onclick="fecharModalReset()">Cancelar</button>
+      </div>
+    </div>
+    <!-- Step 2: Confirmar -->
+    <div id="reset-step2" style="display:none;text-align:center">
+      <div style="font-size:36px;margin-bottom:12px">⚠️</div>
+      <div class="modal-title">Confirmar reset?</div>
+      <div style="font-size:13px;color:var(--t2);margin:12px 0 20px">Você vai resetar <strong id="reset-confirm-count"></strong> do checklist <strong id="reset-cl-nome2"></strong>.<br><span style="font-size:12px;color:var(--t3)">Os itens voltarão para não concluído.</span></div>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button class="btn btn-d" onclick="executarReset()">Sim, resetar</button>
+        <button class="btn btn-s" onclick="fecharModalReset()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR EXCLUSÃO -->
+<div class="modal-bg" id="modal-excluir">
+  <div class="modal-box" style="width:380px;text-align:center">
+    <div style="font-size:36px;margin-bottom:12px">🗑️</div>
+    <div class="modal-title" style="justify-content:center">Excluir Checklist?</div>
+    <div style="font-size:14px;color:var(--t2);margin-bottom:20px">Você está prestes a excluir:<br><strong id="excluir-nome"></strong><br><span style="font-size:12px;color:var(--t3)">Esta ação não pode ser desfeita.</span></div>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button class="btn btn-d" onclick="confirmarExcluir()">Sim, excluir</button>
+      <button class="btn btn-s" onclick="cancelarExcluir()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETALHE RESULTADO -->
+<div class="modal-bg" id="modal-det">
+  <div class="modal-box" style="width:520px">
+    <div class="modal-title" id="det-titulo"></div>
+    <div style="font-size:12px;color:var(--t3);margin-bottom:18px" id="det-meta"></div>
+    <div id="det-itens"></div>
+    <div class="btn-row"><button class="btn btn-s" onclick="document.getElementById('modal-det').style.display='none'">Fechar</button></div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey: "AIzaSyAIOroUpio0sSBzTuhUqyJxz5bV7PX4KLw",
+  authDomain: "economico-gestao.firebaseapp.com",
+  projectId: "economico-gestao",
+  storageBucket: "economico-gestao.firebasestorage.app",
+  messagingSenderId: "650620659681",
+  appId: "1:650620659681:web:4ca84bdb330d028e9f14a0"
+});
+var db = firebase.firestore();
+</script>
+<script>
+// ═══════════════════════════════════════════
+// DADOS BUILTIN DE CHECKLISTS
+// ═══════════════════════════════════════════
+var BUILTIN = { admin:[], operator:[], prevencao:[] };
+
+// ═══════════════════════════════════════════
+// STORAGE
+// ═══════════════════════════════════════════
+var UKEY = 'eco_users';
+var CLSTATE_PREFIX = 'eco_clstate_';
+
+function getStateKey() {
+  var userId = S.currentUser ? S.currentUser.id : 'guest';
+  var today = new Date().toISOString().slice(0,10);
+  return CLSTATE_PREFIX + userId + '_' + today;
+}
+
+function loadCheckState() {
+  try {
+    var raw = localStorage.getItem(getStateKey());
+    return raw ? JSON.parse(raw) : {};
+  } catch(e) { return {}; }
+}
+
+function saveCheckState() {
+  try {
+    localStorage.setItem(getStateKey(), JSON.stringify(S.checkState));
+    // Also save to Firebase
+    var userId = S.currentUser ? S.currentUser.id : 'guest';
+    var today = new Date().toISOString().slice(0,10);
+    db.collection('checkstates').doc(userId+'_'+today).set({
+      userId: userId,
+      date: today,
+      state: JSON.stringify(S.checkState)
+    }).catch(function(){});
+  } catch(e) {}
+}
+
+function loadCheckStateFromFirebase(callback) {
+  var userId = S.currentUser ? S.currentUser.id : 'guest';
+  var today = new Date().toISOString().slice(0,10);
+  db.collection('checkstates').doc(userId+'_'+today).get().then(function(doc){
+    if (doc.exists && doc.data().state) {
+      try {
+        var fbState = JSON.parse(doc.data().state);
+        // Merge with localStorage (Firebase wins)
+        var localState = loadCheckState();
+        S.checkState = Object.assign(localState, fbState);
+        localStorage.setItem(getStateKey(), JSON.stringify(S.checkState));
+      } catch(e) { S.checkState = loadCheckState(); }
+    } else {
+      S.checkState = loadCheckState();
+    }
+    if (callback) callback();
+  }).catch(function(){
+    S.checkState = loadCheckState();
+    if (callback) callback();
+  });
+}
+var CLKEY = 'eco_cl_custom';
+var RESKEY = 'eco_resultados';
+
+var DEFAULT_USERS = [
+  {id:'admin',nome:'Administrador Central',email:'admin@economico.com',senha:'admin123',perfil:'admin',setor:'Central',cargo:'Admin do sistema',ativo:true}
+];
+
+function getUsers() {
+  // Returns from cache (loaded from Firebase on login)
+  var cached = S.usersCache && S.usersCache.length ? S.usersCache : null;
+  if (!cached) {
+    try {
+      var raw = localStorage.getItem(UKEY);
+      cached = raw ? JSON.parse(raw) : DEFAULT_USERS.slice();
+    } catch(e) { cached = DEFAULT_USERS.slice(); }
+  }
+  // Always ensure admin exists
+  if (!cached.some(function(u){return u.id==='admin';})) cached.unshift(DEFAULT_USERS[0]);
+  return cached;
+}
+
+function saveUsers(list) {
+  S.usersCache = list;
+  localStorage.setItem(UKEY, JSON.stringify(list));
+  // Save to Firebase (skip admin — always in code)
+  list.forEach(function(u){
+    db.collection('usuarios').doc(u.id).set(u).catch(function(){});
+  });
+}
+
+function loadUsersFromFirebase(callback) {
+  db.collection('usuarios').get().then(function(snap){
+    var list = snap.docs.map(function(d){return d.data();});
+    // Always keep admin from DEFAULT_USERS
+    if (!list.some(function(u){return u.id==='admin';})) list.unshift(DEFAULT_USERS[0]);
+    S.usersCache = list;
+    localStorage.setItem(UKEY, JSON.stringify(list));
+    if (callback) callback();
+  }).catch(function(){
+    try {
+      var raw = localStorage.getItem(UKEY);
+      S.usersCache = raw ? JSON.parse(raw) : DEFAULT_USERS.slice();
+    } catch(e){ S.usersCache = DEFAULT_USERS.slice(); }
+    if (callback) callback();
+  });
+}
+
+// ── FIREBASE: Custom Checklists ──
+function getCustomCLs() {
+  // Returns from local cache (loaded async on login)
+  return S.customCLsCache || [];
+}
+
+function saveCustomCLs(list) {
+  S.customCLsCache = list;
+  // Save each checklist to Firestore
+  var batch = db.collection('checklists');
+  // Delete removed ones
+  batch.get().then(function(snap){
+    var existingIds = snap.docs.map(function(d){return d.id;});
+    var newIds = list.map(function(cl){return cl.id;});
+    existingIds.forEach(function(id){
+      if (newIds.indexOf(id)<0) db.collection('checklists').doc(id).delete();
+    });
+    list.forEach(function(cl){
+      db.collection('checklists').doc(cl.id).set(cl);
+    });
+  }).catch(function(){
+    // Fallback to localStorage
+    localStorage.setItem(CLKEY, JSON.stringify(list));
+  });
+  localStorage.setItem(CLKEY, JSON.stringify(list));
+}
+
+function loadCustomCLsFromFirebase(callback) {
+  db.collection('checklists').get().then(function(snap){
+    var list = snap.docs.map(function(d){return d.data();});
+    // Filter out builtin duplicates
+    var allBuiltin = BUILTIN.admin.concat(BUILTIN.operator).concat(BUILTIN.prevencao);
+    var builtinIds = allBuiltin.map(function(cl){return cl.id;});
+    var builtinNames = allBuiltin.map(function(cl){return (cl.label||cl.nome||'').trim().toLowerCase();});
+    list = list.filter(function(cl){
+      if (builtinIds.indexOf(cl.id)>=0) return false;
+      var nm=(cl.nome||cl.label||'').trim().toLowerCase();
+      if (builtinNames.indexOf(nm)>=0) return false;
+      return true;
+    });
+    S.customCLsCache = list;
+    localStorage.setItem(CLKEY, JSON.stringify(list));
+    if (callback) callback();
+  }).catch(function(){
+    // Fallback to localStorage
+    try { S.customCLsCache = JSON.parse(localStorage.getItem(CLKEY)||'[]'); } catch(e){ S.customCLsCache=[]; }
+    if (callback) callback();
+  });
+}
+
+// ── FIREBASE: Resultados ──
+function getResultados() {
+  return S.resultadosCache || [];
+}
+
+function saveResultados(list) {
+  S.resultadosCache = list;
+  if (list.length > 0) {
+    var ultimo = list[list.length-1];
+    db.collection('resultados').doc(ultimo.id).set(ultimo).catch(function(){
+      localStorage.setItem(RESKEY, JSON.stringify(list));
+    });
+  }
+  localStorage.setItem(RESKEY, JSON.stringify(list));
+}
+
+function loadResultadosFromFirebase(callback) {
+  db.collection('resultados').orderBy('dataHora', 'asc').get().then(function(snap){
+    var list = snap.docs.map(function(d){return d.data();});
+    S.resultadosCache = list;
+    localStorage.setItem(RESKEY, JSON.stringify(list));
+    if (callback) callback();
+  }).catch(function(){
+    try { S.resultadosCache = JSON.parse(localStorage.getItem(RESKEY)||'[]'); } catch(e){ S.resultadosCache=[]; }
+    if (callback) callback();
+  });
+}
+
+function limparResultadosFirebase() {
+  db.collection('resultados').get().then(function(snap){
+    snap.docs.forEach(function(d){ d.ref.delete(); });
+  });
+}
+
+function genId() { return 'id_'+Date.now()+'_'+Math.random().toString(36).substr(2,5); }
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+var S = {
+  role: '',
+  currentUser: null,
+  checkState: {},
+  invItems: [],
+  perdaItems: [],
+  historico: [],
+  dashCharts: {},
+  relCharts: {},
+  customCLsCache: [],
+  resultadosCache: [],
+  usersCache: []
+};
+
+// ═══════════════════════════════════════════
+// LOGIN / LOGOUT
+// ═══════════════════════════════════════════
+function doLogin() {
+  var email = (document.getElementById('lEmail').value||'').trim().toLowerCase();
+  var pass = document.getElementById('lPass').value;
+  var err = document.getElementById('lErr');
+  // Check admin first (always in code, no Firebase needed)
+  var adminUser = DEFAULT_USERS[0];
+  if (email === adminUser.email.toLowerCase() && pass === adminUser.senha && adminUser.ativo) {
+    finalizarLogin(adminUser);
+    return;
+  }
+  // For other users, load from Firebase then authenticate
+  err.style.display='none';
+  document.getElementById('lErr').textContent='Verificando...';
+  document.getElementById('lErr').style.color='var(--t3)';
+  document.getElementById('lErr').style.display='block';
+  db.collection('usuarios').get().then(function(snap){
+    var list = snap.docs.map(function(d){return d.data();});
+    list.unshift(adminUser);
+    S.usersCache = list;
+    localStorage.setItem('eco_users', JSON.stringify(list));
+    var found = null;
+    for (var i=0;i<list.length;i++){
+      if(list[i].email.toLowerCase()===email && list[i].senha===pass && list[i].ativo){found=list[i];break;}
+    }
+    if (!found) {
+      document.getElementById('lErr').textContent='E-mail ou senha incorretos.';
+      document.getElementById('lErr').style.color='var(--r)';
+      return;
+    }
+    finalizarLogin(found);
+  }).catch(function(){
+    // Fallback to localStorage
+    var users = getUsers();
+    var found = null;
+    for(var i=0;i<users.length;i++){if(users[i].email.toLowerCase()===email&&users[i].senha===pass&&users[i].ativo){found=users[i];break;}}
+    if (!found) { err.style.display='block'; return; }
+    finalizarLogin(found);
+  });
+}
+
+function finalizarLogin(found) {
+  document.getElementById('lErr').style.display='none';
+  S.role = found.perfil;
+  S.currentUser = found;
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  setupRole();
+  setDate();
+  var isOpOrPrev2 = S.role==='operator'||S.role==='prevencao';
+  if (!isOpOrPrev2) initDashCharts();
+  // Show loading indicator
+  document.getElementById('app').style.opacity='0.6';
+  // Load from Firebase then build UI
+  loadUsersFromFirebase(function(){
+  loadCustomCLsFromFirebase(function(){
+    loadResultadosFromFirebase(function(){
+      loadCheckStateFromFirebase(function(){
+      buildCLTabs();
+      var hoje = new Date();
+      var dEl = document.getElementById('cl-data-hoje');
+      if (dEl) dEl.textContent = hoje.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+      document.getElementById('app').style.opacity='1';
+      });
+    });
+  });
+  }); // loadUsersFromFirebase
+  // Operador e Prevenção vão direto para Checklist
+  if (isOpOrPrev2) {
+    var clItem = document.querySelector('.sb-item[onclick*="checklist"]');
+    nav('checklist', clItem);
+  } else {
+    nav('dashboard', document.querySelector('#nav-dashboard'));
+  }
+}
+
+function doLogout() {
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('app').style.display='none';
+  document.querySelectorAll('.sb-item').forEach(function(i){i.classList.remove('active');});
+  document.querySelector('.sb-item').classList.add('active');
+  Object.values(S.dashCharts).forEach(function(c){try{c.destroy();}catch(e){}});
+  Object.values(S.relCharts).forEach(function(c){try{c.destroy();}catch(e){}});
+  S = {role:'',currentUser:null,checkState:{},invItems:[],perdaItems:[],historico:[],dashCharts:{},relCharts:{}};
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
+  document.getElementById('panel-dashboard').classList.add('active');
+}
+
+function setupRole() {
+  var r = S.role;
+  var roleNames = {admin:'Administrador',gerencia:'Gerência de Loja',operator:'Operador',prevencao:'Aux. Prevenção'};
+  var badgeCls = {admin:'badge-admin',gerencia:'badge-admin',operator:'badge-op',prevencao:'badge-prev'};
+  var badgeTxt = {admin:'Administrador',gerencia:'Gerência',operator:'Operador',prevencao:'Prevenção'};
+  document.getElementById('sbName').textContent = S.currentUser ? S.currentUser.nome : '—';
+  document.getElementById('sbRole').textContent = roleNames[r]||r;
+  var tb = document.getElementById('tbBadge');
+  tb.className = 'badge '+(badgeCls[r]||'badge-op');
+  tb.textContent = badgeTxt[r]||r;
+  var isAdmin = r==='admin';
+  var isAdmOrGer = r==='admin'||r==='gerencia';
+  show('sb-adm-sec', isAdmOrGer);
+  // Show/hide gerenciar tab in checklist
+  var tabGer = document.getElementById('tab-gerenciar');
+  if (tabGer) tabGer.style.display = isAdmOrGer ? '' : 'none';
+  // Dashboard só para admin e gerencia
+  var isOpOrPrev = r==='operator'||r==='prevencao';
+  show('nav-dashboard', !isOpOrPrev);
+  show('nav-central', isAdmin);
+  show('nav-relat', isAdmin);
+  show('nav-users', isAdmin);
+}
+
+function show(id, v) {
+  var el = document.getElementById(id);
+  if (el) el.style.display = v ? '' : 'none';
+}
+
+function setDate() {
+  var d = new Date();
+  document.getElementById('tbDate').textContent = d.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+}
+
+// ═══════════════════════════════════════════
+// NAVEGAÇÃO
+// ═══════════════════════════════════════════
+var PAGE_TITLES = {
+  dashboard:'Dashboard',checklist:'Checklist',inventario:'Inventário',
+  perdas:'Lançar Perdas',central:'Central de Resultados',
+  relatorios:'Relatórios',usuarios:'Cadastro de Usuários'
+};
+
+function nav(page, el) {
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.sb-item').forEach(function(i){i.classList.remove('active');});
+  var panel = document.getElementById('panel-'+page);
+  if (panel) panel.classList.add('active');
+  if (el) el.classList.add('active');
+  document.getElementById('pageTitle').textContent = PAGE_TITLES[page]||page;
+  if (page==='relatorios') { initRelCharts(); renderRelatorios(); }
+  if (page==='usuarios') renderUsers();
+  if (page==='central') renderCentral();
+  updateDash();
+}
+
+// ═══════════════════════════════════════════
+// CHECKLISTS — BUILTIN
+// ═══════════════════════════════════════════
+function setCLMode(mode, btn) {
+  document.querySelectorAll('#cl-mode-tabs .tab').forEach(function(t){t.classList.remove('on');});
+  btn.classList.add('on');
+  var isAdmOrGer = S.role==='admin'||S.role==='gerencia';
+  document.getElementById('cl-mode-executar').style.display = mode==='executar' ? 'block' : 'none';
+  document.getElementById('cl-mode-gerenciar').style.display = mode==='gerenciar' ? 'block' : 'none';
+  document.getElementById('cl-add-btn').style.display = (mode==='gerenciar' && isAdmOrGer) ? 'block' : 'none';
+  if (mode==='gerenciar') renderCLGrid();
+}
+
+function getMyCLs() {
+  var r = S.role;
+  var base = [];
+  if (r==='admin') base = BUILTIN.admin.concat(BUILTIN.operator).concat(BUILTIN.prevencao);
+  else if (r==='gerencia') base = BUILTIN.admin.concat(BUILTIN.operator);
+  else if (r==='operator') base = BUILTIN.operator.slice();
+  else if (r==='prevencao') base = BUILTIN.prevencao.slice();
+  var custom = getCustomCLs().filter(function(cl){
+    if (r==='admin') return true;
+    if (cl.perfil==='todos') return true;
+    return cl.perfil===r;
+  }).map(function(cl){
+    return {id:cl.id,label:cl.nome,desc:cl.desc||cl.setor+' — '+(cl.turno||''),itens:cl.itens,setor:cl.setor};
+  });
+  return base.concat(custom);
+}
+
+function buildCLTabs() {
+  var lists = getMyCLs();
+  var tabsEl = document.getElementById('cl-tabs');
+  var contentEl = document.getElementById('cl-content');
+  tabsEl.innerHTML = '';
+  contentEl.innerHTML = '';
+  if (!lists.length) { contentEl.innerHTML='<p style="color:var(--t3)">Nenhum checklist disponível.</p>'; return; }
+  lists.forEach(function(cl,idx){
+    cl.itens.forEach(function(item){
+      var key = cl.id+'_'+item.t;
+      if (S.checkState[key]===undefined) S.checkState[key]=false;
+    });
+    // Note: checkState already loaded from localStorage — only set undefined keys
+    var tab = document.createElement('div');
+    tab.className = 'tab'+(idx===0?' on':'');
+    tab.textContent = cl.label;
+    tab.onclick = (function(id){ return function(){ switchCLTab(id); }; })(cl.id);
+    tabsEl.appendChild(tab);
+    var block = document.createElement('div');
+    block.id = 'cl-block-'+cl.id;
+    block.style.display = idx===0?'block':'none';
+    block.innerHTML = buildCLBlock(cl);
+    contentEl.appendChild(block);
+  });
+}
+
+function buildCLBlock(cl) {
+  var done = cl.itens.filter(function(i){ return S.checkState[cl.id+'_'+i.t]; }).length;
+  var total = cl.itens.length;
+  var pct = total ? Math.round(done/total*100) : 0;
+  // Check if already sent today by this user
+  var jaConcluido = jaEnviouHoje(cl.id);
+
+  var items = cl.itens.map(function(item,i){
+    var key = cl.id + '_' + item.t;
+    var on = S.checkState[key] ? true : false;
+    var fotoHtml = '';
+    if (item.foto) {
+      var hasFoto = S.checkState[cl.id+'_foto_'+i] ? true : false;
+      var fbg = hasFoto ? 'color:var(--g);background:var(--g3);border-color:var(--g2)' : 'color:var(--t3);background:var(--gray)';
+      var ftxt = hasFoto ? '📷 Foto ok' : '📷 Foto';
+      fotoHtml = '<label style="cursor:pointer;flex-shrink:0" onclick="event.stopPropagation()">'
+        + '<input type="file" accept="image/*" capture="environment" style="display:none"'
+        + ' onchange="salvarFoto(\'' + cl.id + '\',' + i + ',this)">'
+        + '<span id="foto-badge-' + cl.id + '-' + i + '" style="font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid var(--gray3);' + fbg + '">' + ftxt + '</span>'
+        + '</label>';
+    }
+    var itemBg = on ? 'var(--g3)' : '#fff';
+    var txtStyle = on ? 'text-decoration:line-through;color:var(--t3)' : 'color:var(--t)';
+    return '<div id="cli-' + cl.id + '-' + i + '" style="display:flex;align-items:flex-start;gap:12px;padding:13px 14px;border:1px solid var(--gray2);border-radius:10px;background:' + itemBg + '">'
+      + '<div class="chkbox' + (on ? ' on' : '') + '" id="chk-' + cl.id + '-' + i + '"'
+      + (jaConcluido ? ' style="cursor:not-allowed;opacity:.6;flex-shrink:0;margin-top:1px">' : ' onclick="toggleCL(\'' + cl.id + '\',' + i + ')" style="cursor:pointer;flex-shrink:0;margin-top:1px">') + (on ? '✓' : '') + '</div>'
+      + '<div style="flex:1;min-width:0">'
+      + '<div style="font-size:13px;font-weight:500;line-height:1.4;' + txtStyle + '">' + item.t + '</div>'
+      + (item.obs ? '<div style="font-size:11px;color:var(--t3);margin-top:3px">' + item.obs + '</div>' : '')
+      + '</div>'
+      + fotoHtml
+      + '</div>';
+  }).join('');
+  var empty = !total ? '<div style="text-align:center;padding:32px;color:var(--t3);font-size:13px">Nenhum item neste checklist.</div>' : '';
+  var envioBanner = jaConcluido
+    ? '<div style="display:flex;align-items:center;gap:10px;background:#e8f5ee;border:1px solid #a8d5b5;border-radius:10px;padding:12px 16px;margin-bottom:14px">'
+      + '<span style="font-size:20px">✅</span>'
+      + '<div><div style="font-size:13px;font-weight:600;color:var(--g)">Checklist já enviado hoje!</div>'
+      + '<div style="font-size:12px;color:var(--g)">Você já enviou este checklist hoje. Os itens não podem mais ser alterados.</div></div>'
+      + '</div>'
+    : '';
+  var clId = cl.id;
+  var clLabel = cl.label;
+  var clDesc = cl.desc || '';
+  var clSetor = cl.setor || '';
+  var clTurno = cl.turno || '';
+  var pctColor = pct===100 ? 'var(--g)' : pct>=50 ? 'var(--am)' : 'var(--r)';
+  return '<div style="background:#fff;border:1px solid var(--gray2);border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:var(--sh)">'
+    + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px">'
+    + '<div>'
+    + '<div style="font-family:\'Syne\',sans-serif;font-size:18px;font-weight:800;color:var(--t);margin-bottom:4px">' + clLabel + '</div>'
+    + (clDesc ? '<div style="font-size:13px;color:var(--t2);line-height:1.5;margin-bottom:6px">' + clDesc + '</div>' : '')
+    + envioBanner
+    + '<div style="display:flex;gap:6px;flex-wrap:wrap">'
+    + (clSetor ? '<span style="font-size:11px;padding:2px 9px;border-radius:20px;background:var(--g3);color:var(--g);font-weight:600">' + clSetor + '</span>' : '')
+    + (clTurno ? '<span style="font-size:11px;padding:2px 9px;border-radius:20px;background:var(--gray);color:var(--t3)">' + clTurno + '</span>' : '')
+    + '</div></div>'
+    + '<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">'
+    + (jaConcluido ? '<button class="btn btn-s btn-sm" disabled style="opacity:.5;cursor:not-allowed">✉ Já enviado</button>' : '<button class="btn btn-p btn-sm" onclick="enviarCL(\'' + clId + '\',\'' + clLabel.replace(/'/g, '') + '\')">✉ Enviar</button>')
+    + (S.role==='admin' ? '<button class="btn btn-s btn-sm" onclick="abrirModalReset(\'' + clId + '\')" style="margin-top:4px">↺ Resetar itens</button>' : '')
+    + '</div></div>'
+    + '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--gray);border-radius:8px;margin-bottom:14px">'
+    + '<span style="font-size:12px;font-weight:600;color:var(--t2)">' + done + '/' + total + ' concluídos</span>'
+    + '<div class="cl-prog-bar" style="flex:1"><div class="cl-prog-fill" id="pf-' + clId + '" style="width:' + pct + '%"></div></div>'
+    + '<span style="font-size:13px;font-weight:700;color:' + pctColor + '" id="pt-' + clId + '">' + pct + '%</span>'
+    + '</div>'
+    + '<div style="display:flex;flex-direction:column;gap:8px" id="clw-' + clId + '">' + items + empty + '</div>'
+    + '</div>';
+}
+
+function switchCLTab(id) {
+  var lists = getMyCLs();
+  document.querySelectorAll('#cl-tabs .tab').forEach(function(t,i){
+    t.classList.toggle('on', lists[i] && lists[i].id===id);
+  });
+  lists.forEach(function(cl){
+    var b = document.getElementById('cl-block-'+cl.id);
+    if (b) b.style.display = cl.id===id ? 'block' : 'none';
+  });
+}
+
+function toggleCL(clId, idx) {
+  if (jaEnviouHoje(clId)) return;
+  var cl = getMyCLs().find(function(c){return c.id===clId;});
+  if (!cl) return;
+  var key = clId+'_'+cl.itens[idx].t;
+  S.checkState[key] = !S.checkState[key];
+  var on = S.checkState[key];
+  var itemEl = document.getElementById('cli-'+clId+'-'+idx);
+  var box = document.getElementById('chk-'+clId+'-'+idx);
+  if (itemEl) itemEl.style.background = on ? 'var(--g3)' : '#fff';
+  if (box) {
+    box.className = 'chkbox'+(on?' on':'');
+    box.textContent = on ? '✓' : '';
+  }
+  var txtEl = itemEl ? itemEl.querySelector('[style*="font-weight:500"]') : null;
+  if (txtEl) txtEl.style.cssText = on ? 'font-size:13px;font-weight:500;line-height:1.4;text-decoration:line-through;color:var(--t3)' : 'font-size:13px;font-weight:500;line-height:1.4;color:var(--t)';
+  saveCheckState();
+  updateCLProg(cl);
+  updateDash();
+}
+
+function salvarFoto(clId, idx, input) {
+  if (!input.files || !input.files[0]) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var fotoKey = clId+'_foto_'+idx;
+    S.checkState[fotoKey] = e.target.result;
+    var badge = document.getElementById('foto-badge-'+clId+'-'+idx);
+    if (badge) {
+      badge.textContent = '📷 Foto';
+      badge.style.color = 'var(--g)';
+      badge.style.background = 'var(--g3)';
+      badge.style.borderColor = 'var(--g2)';
+    }
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function updateCLProg(cl) {
+  var done = cl.itens.filter(function(i){return S.checkState[cl.id+'_'+i.t];}).length;
+  var total = cl.itens.length;
+  var pct = total ? Math.round(done/total*100) : 0;
+  var f = document.getElementById('pf-'+cl.id);
+  var t = document.getElementById('pt-'+cl.id);
+  if (f) f.style.width = pct+'%';
+  if (t) t.textContent = done+'/'+total+' — '+pct+'%';
+}
+
+var pendingResetClId = null;
+var pendingResetItens = [];
+
+function abrirModalReset(clId) {
+  var cl = getMyCLs().find(function(c){return c.id===clId;});
+  if (!cl) return;
+  pendingResetClId = clId;
+  pendingResetItens = [];
+  document.getElementById('reset-cl-nome').textContent = cl.label;
+  // Build item list — only show checked ones
+  var checkedItens = cl.itens.filter(function(i){return !!S.checkState[clId+'_'+i.t];});
+  resetItemsRef = checkedItens;
+  var wrap = document.getElementById('reset-itens-wrap');
+  if (!checkedItens.length) {
+    wrap.innerHTML = '<div style="font-size:13px;color:var(--t3);padding:12px 0;text-align:center">Nenhum item marcado neste checklist.</div>';
+  } else {
+    wrap.innerHTML = checkedItens.map(function(item,i){
+      var safeKey = 'ri_'+clId+'_'+i;
+      return '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--gray2);border-radius:8px;cursor:pointer;background:#fff" id="ri-'+i+'" onclick="toggleResetItem('+i+')">'
+        +'<div class="chkbox" id="ri-chk-'+i+'" style="flex-shrink:0"></div>'
+        +'<span style="font-size:13px">'+item.t+'</span>'
+        +'</div>';
+    }).join('');
+    // Store items for reference
+    wrap._itens = checkedItens;
+  }
+  document.getElementById('modal-reset').style.display='flex';
+}
+
+// Store items for reset selection
+var resetItemsRef = [];
+
+function toggleResetItem(i) {
+  var item = resetItemsRef[i];
+  if (!item) return;
+  var el = document.getElementById('ri-'+i);
+  var chk = document.getElementById('ri-chk-'+i);
+  var texto = item.t;
+  var idx = pendingResetItens.indexOf(texto);
+  if (idx >= 0) {
+    pendingResetItens.splice(idx,1);
+    el.style.background='#fff';
+    chk.className='chkbox';
+    chk.style.background='';
+    chk.style.borderColor='';
+    chk.textContent='';
+  } else {
+    pendingResetItens.push(texto);
+    el.style.background='var(--r2)';
+    chk.className='chkbox on';
+    chk.style.background='var(--r)';
+    chk.style.borderColor='var(--r)';
+    chk.textContent='✓';
+  }
+}
+
+function selecionarTodosReset() {
+  var clId = pendingResetClId;
+  var cl = getMyCLs().find(function(c){return c.id===clId;});
+  if (!cl) return;
+  pendingResetItens = [];
+  resetItemsRef.forEach(function(i){
+    if (pendingResetItens.indexOf(i.t)<0) pendingResetItens.push(i.t);
+  });
+  document.querySelectorAll('#reset-itens-wrap > div').forEach(function(el){
+    el.style.background='var(--r2)';
+    el.querySelector('.chkbox').className='chkbox on';
+    el.querySelector('.chkbox').style.background='var(--r)';
+    el.querySelector('.chkbox').style.borderColor='var(--r)';
+    el.querySelector('.chkbox').textContent='✓';
+  });
+}
+
+function confirmarReset() {
+  if (!pendingResetClId || !pendingResetItens.length) {
+    document.getElementById('reset-err').style.display='block';
+    return;
+  }
+  document.getElementById('reset-err').style.display='none';
+  // Show confirm step
+  document.getElementById('reset-step1').style.display='none';
+  document.getElementById('reset-step2').style.display='block';
+  document.getElementById('reset-confirm-count').textContent = pendingResetItens.length+' item(s)';
+  var clNome = document.getElementById('reset-cl-nome').textContent;
+  document.getElementById('reset-cl-nome2').textContent = clNome;
+}
+
+function executarReset() {
+  var clId = pendingResetClId;
+  pendingResetItens.forEach(function(texto){
+    S.checkState[clId+'_'+texto] = false;
+  });
+  saveCheckState();
+  var cl = getMyCLs().find(function(c){return c.id===clId;});
+  var b = document.getElementById('cl-block-'+clId);
+  if (b && cl) b.innerHTML = buildCLBlock(cl);
+  updateDash();
+  fecharModalReset();
+  showToast('↺ '+pendingResetItens.length+' item(s) resetado(s)');
+}
+
+function fecharModalReset() {
+  document.getElementById('modal-reset').style.display='none';
+  document.getElementById('reset-step1').style.display='block';
+  document.getElementById('reset-step2').style.display='none';
+  document.getElementById('reset-err').style.display='none';
+  pendingResetClId=null;
+  pendingResetItens=[];
+}
+
+function resetCL(clId) {
+  var cl = getMyCLs().find(function(c){return c.id===clId;});
+  if (!cl) return;
+  cl.itens.forEach(function(i){S.checkState[clId+'_'+i.t]=false;});
+  saveCheckState();
+  var b = document.getElementById('cl-block-'+clId);
+  if (b) b.innerHTML = buildCLBlock(cl);
+  updateDash();
+}
+
+var pendingEnviarId = null;
+var pendingEnviarLabel = null;
+
+function jaEnviouHoje(clId) {
+  var hoje = new Date().toLocaleDateString('pt-BR');
+  var operador = S.currentUser ? S.currentUser.nome : '--';
+  var resultados = getResultados();
+  return resultados.some(function(r){
+    return r.checklistId === clId
+      && r.operador === operador
+      && r.dataHora && r.dataHora.indexOf(hoje) === 0;
+  });
+}
+
+function enviarCL(clId, label) {
+  var cl = getMyCLs().find(function(c){return c.id===clId;});
+  if (!cl) return;
+  var feitos = cl.itens.filter(function(i){return !!S.checkState[clId+'_'+i.t];}).length;
+  var total = cl.itens.length;
+  var pct = total ? Math.round(feitos/total*100) : 0;
+
+  // Bloquear reenvio se já enviou 100% hoje
+  if (jaEnviouHoje(clId)) {
+    document.getElementById('env-ja-enviado-nome').textContent = label;
+    document.getElementById('modal-ja-enviado').style.display = 'flex';
+    return;
+  }
+
+  pendingEnviarId = clId;
+  pendingEnviarLabel = label;
+  document.getElementById('env-titulo').textContent = label;
+  document.getElementById('env-pct').textContent = pct+'%';
+  document.getElementById('env-itens').textContent = feitos+'/'+total+' itens concluidos';
+  var icon = document.getElementById('env-icon');
+  var msg = document.getElementById('env-msg');
+  if (pct === 100) {
+    icon.textContent = 'OK';
+    msg.textContent = 'Todos os itens foram concluidos!';
+    msg.style.color = 'var(--g)';
+  } else if (pct >= 50) {
+    icon.textContent = '! ';
+    msg.textContent = 'Atencao: alguns itens ainda nao foram marcados.';
+    msg.style.color = 'var(--am)';
+  } else {
+    icon.textContent = 'X ';
+    msg.textContent = 'A maioria dos itens nao foi concluida. Deseja enviar mesmo assim?';
+    msg.style.color = 'var(--r)';
+  }
+  var fill = document.getElementById('env-bar-fill');
+  fill.style.width = pct+'%';
+  fill.style.background = pct===100 ? 'var(--g2)' : pct>=50 ? 'var(--am)' : 'var(--r)';
+  document.getElementById('modal-enviar').style.display = 'flex';
+}
+
+function confirmarEnviar() {
+  var clId = pendingEnviarId;
+  var label = pendingEnviarLabel;
+  if (!clId) return;
+  var cl = getMyCLs().find(function(c){return c.id===clId;});
+  if (!cl) return;
+  var snapshot = cl.itens.map(function(item,idx){
+    return {texto:item.t, obs:item.obs||'', foto:item.foto||false, fotoData:S.checkState[clId+'_foto_'+idx]||null, feito:!!S.checkState[clId+'_'+item.t]};
+  });
+  var feitos = snapshot.filter(function(i){return i.feito;}).length;
+  var total = snapshot.length;
+  var pct = total ? Math.round(feitos/total*100) : 0;
+  var customCL = getCustomCLs().find(function(c){return c.id===clId;});
+  var setor = customCL ? customCL.setor : 'Geral';
+  var now = new Date();
+  var dh = now.toLocaleDateString('pt-BR')+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  var res = {
+    id:genId(), checklistId:clId, checklistNome:label, setor:setor,
+    operador:S.currentUser?S.currentUser.nome:'--', perfil:S.role,
+    dataHora:dh, itens:snapshot, feitos:feitos, total:total, pct:pct
+  };
+  var lista = getResultados();
+  lista.push(res);
+  saveResultados(lista);
+  addHist('Checklist','"'+label+'" enviado ('+pct+'%)','Geral',pct===100?'st-ok':'st-warn',pct+'%');
+  updateDash();
+  pendingEnviarId = null;
+  pendingEnviarLabel = null;
+  document.getElementById('modal-enviar').style.display = 'none';
+  showToast(pct===100 ? 'Checklist enviado com sucesso!' : 'Checklist enviado com '+pct+'% concluido');
+}
+
+function cancelarEnviar() {
+  pendingEnviarId = null;
+  pendingEnviarLabel = null;
+  document.getElementById('modal-enviar').style.display = 'none';
+}
+
+
+// ═══════════════════════════════════════════
+// CRIAR CHECKLIST
+// ═══════════════════════════════════════════
+var nclItens = [];
+var editingCLId = null;
+var clFiltro = 'todos';
+var pendingExcluirId = null;
+
+function abrirModalCL() {
+  editingCLId = null;
+  nclItens = [];
+  document.getElementById('mcl-title').textContent = 'Novo Checklist';
+  ['ncl-nome','ncl-desc','ncl-item-txt','ncl-item-obs'].forEach(function(id){document.getElementById(id).value='';}); document.getElementById('ncl-item-foto').checked=false;
+  document.getElementById('ncl-perfil').value='operator';
+  document.getElementById('ncl-setor').value='Açougue';
+  document.getElementById('ncl-turno').value='Abertura';
+  document.getElementById('mcl-err').style.display='none';
+  renderNclItens();
+  document.getElementById('modal-cl').style.display='flex';
+}
+
+function fecharModalCL() {
+  document.getElementById('modal-cl').style.display='none';
+  nclItens=[]; editingCLId=null;
+}
+
+function addItemNCL() {
+  var txt = document.getElementById('ncl-item-txt').value.trim();
+  var obs = document.getElementById('ncl-item-obs').value.trim();
+  var foto = document.getElementById('ncl-item-foto').checked;
+  if (!txt) return;
+  nclItens.push({t:txt, obs:obs, foto:foto});
+  document.getElementById('ncl-item-txt').value='';
+  document.getElementById('ncl-item-obs').value='';
+  document.getElementById('ncl-item-foto').checked=false;
+  renderNclItens();
+  document.getElementById('ncl-item-txt').focus();
+}
+
+function removeItemNCL(idx) {
+  nclItens.splice(idx,1);
+  renderNclItens();
+}
+
+function renderNclItens() {
+  var wrap = document.getElementById('ncl-itens-wrap');
+  if (!nclItens.length) { wrap.innerHTML='<div style="font-size:12px;color:var(--t3);padding:8px 0">Nenhum item ainda. Preencha o campo abaixo e clique em Adicionar.</div>'; return; }
+  wrap.innerHTML = nclItens.map(function(item,i){
+    return '<div style="display:flex;align-items:flex-start;gap:8px;padding:10px 12px;background:var(--gray);border-radius:8px">'
+      +'<span style="font-size:18px;margin-top:1px">☐</span>'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-size:13px;font-weight:500">'+item.t+'</div>'
+      +(item.obs ? '<div style="font-size:11px;color:var(--t3);margin-top:2px">'+item.obs+'</div>' : '')
+      +(item.foto ? '<div style="font-size:11px;color:var(--g);margin-top:2px">📷 Exige foto</div>' : '')
+      +'</div>'
+      +'<button onclick="removeItemNCL('+i+')" style="background:none;border:none;color:var(--r);cursor:pointer;font-size:16px;line-height:1;flex-shrink:0">✕</button>'
+      +'</div>';
+  }).join('');
+}
+
+function salvarCL() {
+  var nome = document.getElementById('ncl-nome').value.trim();
+  var setor = document.getElementById('ncl-setor').value;
+  var perfil = document.getElementById('ncl-perfil').value;
+  var turno = document.getElementById('ncl-turno').value;
+  var desc = document.getElementById('ncl-desc').value.trim();
+  var err = document.getElementById('mcl-err');
+  if (!nome) { err.textContent='Informe o nome.'; err.style.display='block'; return; }
+  if (!nclItens.length) { err.textContent='Adicione pelo menos 1 item.'; err.style.display='block'; return; }
+  var list = getCustomCLs();
+  if (editingCLId) {
+    list = list.map(function(cl){ return cl.id===editingCLId ? Object.assign({},cl,{nome,setor,perfil,turno,desc,itens:nclItens.slice()}) : cl; });
+  } else {
+    list.push({id:genId(),nome,setor,perfil,turno,desc,itens:nclItens.slice(),criadoEm:new Date().toLocaleString('pt-BR'),criadoPor:S.currentUser?S.currentUser.nome:'Admin'});
+  }
+  saveCustomCLs(list);
+  fecharModalCL();
+  renderCLGrid();
+  buildCLTabs();
+}
+
+function editarCL(id) {
+  var cl = getCustomCLs().find(function(x){return x.id===id;});
+  if (!cl) return;
+  editingCLId = id;
+  nclItens = cl.itens.slice();
+  document.getElementById('mcl-title').textContent='Editar Checklist';
+  document.getElementById('ncl-nome').value=cl.nome;
+  document.getElementById('ncl-setor').value=cl.setor;
+  document.getElementById('ncl-perfil').value=cl.perfil;
+  document.getElementById('ncl-turno').value=cl.turno||'Abertura';
+  document.getElementById('ncl-desc').value=cl.desc||'';
+  document.getElementById('mcl-err').style.display='none';
+  ['ncl-item-txt','ncl-item-obs'].forEach(function(id){document.getElementById(id).value='';}); document.getElementById('ncl-item-foto').checked=false;
+  renderNclItens();
+  document.getElementById('modal-cl').style.display='flex';
+}
+
+function excluirCL(id) {
+  // Store pending id and show confirm panel
+  pendingExcluirId = id;
+  var cl = getCustomCLs().find(function(x){return x.id===id;});
+  var nome = cl ? cl.nome : 'este checklist';
+  document.getElementById('excluir-nome').textContent = nome;
+  document.getElementById('modal-excluir').style.display = 'flex';
+}
+
+function confirmarExcluir() {
+  if (!pendingExcluirId) return;
+  saveCustomCLs(getCustomCLs().filter(function(cl){return cl.id!==pendingExcluirId;}));
+  pendingExcluirId = null;
+  document.getElementById('modal-excluir').style.display = 'none';
+  renderCLGrid();
+  buildCLTabs();
+}
+
+function cancelarExcluir() {
+  pendingExcluirId = null;
+  document.getElementById('modal-excluir').style.display = 'none';
+}
+
+function filtrarCL(f, btn) {
+  clFiltro=f;
+  document.querySelectorAll('#cl-criar-tabs .tab').forEach(function(t){t.classList.remove('on');});
+  btn.classList.add('on');
+  renderCLGrid();
+}
+
+var SETOR_COLORS = {'Açougue':'#FCEBEB','Hortifruti':'#EAF3DE','Frios':'#E6F1FB','Padaria':'#FAEEDA','Mercearia':'#E6F1FB','Bebidas':'#E6F1FB','Prevenção':'#FCEBEB','Gerência':'#EAF3DE','Geral':'#f4f6f8','Limpeza':'#f4f6f8','Caixa':'#FAEEDA'};
+var PERF_LABEL = {operator:'Operador',prevencao:'Prevenção',gerencia:'Gerência',todos:'Todos',admin:'Admin'};
+var PERF_CLS = {operator:'st-ok',prevencao:'st-err',gerencia:'st-info',todos:'st-warn',admin:'st-info'};
+
+function renderCLGrid() {
+  var list = getCustomCLs();
+  var filtered = clFiltro==='todos' ? list : list.filter(function(cl){return cl.setor===clFiltro;});
+  var grid = document.getElementById('cl-grid');
+  if (!filtered.length) {
+    grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--t3)"><div style="font-size:32px;margin-bottom:8px">📋</div><div>Nenhum checklist criado ainda</div><div style="font-size:12px;margin-top:4px">Clique em "+ Novo Checklist" para começar</div></div>';
+    return;
+  }
+  grid.innerHTML = filtered.map(function(cl){
+    return '<div style="background:#fff;border:1px solid var(--gray2);border-radius:12px;padding:16px;box-shadow:var(--sh)">'
+      +'<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:12px">'
+      +'<div style="width:36px;height:36px;border-radius:8px;background:'+(SETOR_COLORS[cl.setor]||'#f4f6f8')+';display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📋</div>'
+      +'<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+cl.nome+'</div>'
+      +'<div style="font-size:11px;color:var(--t3)">'+cl.setor+' · '+(cl.turno||'Qualquer')+'</div></div></div>'
+      +'<div style="font-size:12px;color:var(--t2);margin-bottom:10px;min-height:32px">'+(cl.desc||'Sem descrição')+'</div>'
+      +'<div style="display:flex;gap:6px;align-items:center;margin-bottom:10px">'
+      +'<span class="st '+(PERF_CLS[cl.perfil]||'st-ok')+'">'+(PERF_LABEL[cl.perfil]||cl.perfil)+'</span>'
+      +'<span style="font-size:11px;color:var(--t3);margin-left:auto">'+cl.itens.length+' itens</span></div>'
+      +'<div style="font-size:10px;color:var(--t3);margin-bottom:10px">Criado por '+(cl.criadoPor||'Admin')+' · '+(cl.criadoEm||'—')+'</div>'
+      +'<div style="display:flex;gap:6px">'
+      +'<button class="btn btn-s btn-sm cl-btn-editar" data-clid="'+cl.id+'">✏ Editar</button>'
+      +'<button class="btn btn-d btn-sm cl-btn-excluir" data-clid="'+cl.id+'">🗑 Excluir</button>'
+      +'</div></div>';
+  }).join('');
+  grid.querySelectorAll('.cl-btn-editar').forEach(function(btn){btn.addEventListener('click',function(){editarCL(this.dataset.clid);});});
+  grid.querySelectorAll('.cl-btn-excluir').forEach(function(btn){btn.addEventListener('click',function(){excluirCL(this.dataset.clid);});});
+}
+
+// ═══════════════════════════════════════════
+// CENTRAL DE RESULTADOS
+// ═══════════════════════════════════════════
+function renderCentral() {
+  var resultados = getResultados();
+  var fs = (document.getElementById('cf-setor')||{}).value||'';
+  var fo = (document.getElementById('cf-op')||{}).value||'';
+  var opSel = document.getElementById('cf-op');
+  if (opSel) {
+    var ops = [];
+    resultados.forEach(function(r){ if (ops.indexOf(r.operador)<0) ops.push(r.operador); });
+    opSel.innerHTML = '<option value="">Todos</option>'+ops.map(function(o){return '<option'+(fo===o?' selected':'')+'>'+o+'</option>';}).join('');
+  }
+  var lista = resultados;
+  if (fs) lista = lista.filter(function(r){return r.setor===fs;});
+  if (fo) lista = lista.filter(function(r){return r.operador===fo;});
+  var total=lista.length, comp=0, incomp=0, sum=0;
+  lista.forEach(function(r){if(r.pct===100)comp++;else incomp++;sum+=r.pct;});
+  var media = total?Math.round(sum/total):0;
+  document.getElementById('c-total').textContent=total;
+  document.getElementById('c-comp').textContent=comp;
+  document.getElementById('c-incomp').textContent=incomp;
+  document.getElementById('c-media').textContent=total?media+'%':'—';
+  var tbody = document.getElementById('c-tbody');
+  if (!lista.length) { tbody.innerHTML='<tr class="erow"><td colspan="8">Nenhum resultado ainda</td></tr>'; return; }
+  var PLABEL={admin:'Administrador',gerencia:'Gerência',operator:'Operador',prevencao:'Prevenção'};
+  var PCLS={admin:'st-info',gerencia:'st-info',operator:'st-ok',prevencao:'st-err'};
+  var reversed = lista.slice().reverse();
+  tbody.innerHTML = reversed.map(function(r,i){
+    var realIdx = lista.length-1-i;
+    var st = r.pct===100?'st-ok':r.pct>=50?'st-warn':'st-err';
+    return '<tr>'
+      +'<td style="white-space:nowrap;font-size:12px">'+r.dataHora+'</td>'
+      +'<td><strong>'+r.checklistNome+'</strong></td>'
+      +'<td>'+r.setor+'</td>'
+      +'<td>'+r.operador+'</td>'
+      +'<td><span class="st '+(PCLS[r.perfil]||'st-ok')+'">'+(PLABEL[r.perfil]||r.perfil)+'</span></td>'
+      +'<td><span class="st '+st+'">'+r.pct+'%</span></td>'
+      +'<td style="font-size:12px">'+r.feitos+'/'+r.total+'</td>'
+      +'<td><button class="btn btn-s btn-sm" onclick="verDetalhe('+realIdx+')">Ver</button></td>'
+      +'</tr>';
+  }).join('');
+}
+
+function verDetalhe(idx) {
+  var r = getResultados()[idx];
+  if (!r) return;
+  document.getElementById('det-titulo').textContent=r.checklistNome;
+  document.getElementById('det-meta').textContent=r.operador+' · '+r.setor+' · '+r.dataHora+' · '+r.pct+'% concluído';
+  document.getElementById('det-itens').innerHTML=r.itens.map(function(item){
+    return '<div style="padding:10px 12px;border-radius:8px;margin-bottom:6px;border:1px solid var(--gray2);background:'+(item.feito?'var(--g3)':'#fff')+'">'
+      +'<div style="display:flex;align-items:flex-start;gap:10px">'
+      +'<span style="font-size:16px;margin-top:1px">'+(item.feito?'✅':'⬜')+'</span>'
+      +'<div style="flex:1">'
+      +'<div style="font-size:13px;font-weight:500;'+(item.feito?'text-decoration:line-through;color:var(--t3)':'')+'">'+item.texto+'</div>'
+      +(item.obs ? '<div style="font-size:11px;color:var(--t3);margin-top:2px">'+item.obs+'</div>' : '')
+      +(item.foto && !item.fotoData ? '<div style="font-size:11px;color:var(--am);margin-top:3px">📷 Foto exigida — não enviada</div>' : '')
+      +(item.fotoData ? '<div style="margin-top:6px"><img src="'+item.fotoData+'" style="max-width:100%;max-height:180px;border-radius:6px;border:1px solid var(--gray2)"/></div>' : '')
+      +'</div></div>'
+      +'</div>';
+  }).join('');
+  document.getElementById('modal-det').style.display='flex';
+}
+
+function limparCentral() {
+  document.getElementById('modal-limpar-central').style.display = 'flex';
+}
+function confirmarLimparCentral() {
+  limparResultadosFirebase();
+  S.resultadosCache = [];
+  localStorage.setItem('eco_resultados', '[]');
+  document.getElementById('modal-limpar-central').style.display = 'none';
+  renderCentral();
+}
+
+// ═══════════════════════════════════════════
+// INVENTÁRIO
+// ═══════════════════════════════════════════
+function addInv() {
+  var cod=document.getElementById('inv-cod').value||'—';
+  var desc=document.getElementById('inv-desc').value.trim();
+  var setor=document.getElementById('inv-setor').value;
+  var sist=parseFloat(document.getElementById('inv-sist').value)||0;
+  var fis=parseFloat(document.getElementById('inv-fis').value)||0;
+  var unid=document.getElementById('inv-unid').value;
+  var obs=document.getElementById('inv-obs').value;
+  if (!desc) { alert('Informe a descrição.'); return; }
+  S.invItems.push({cod,desc,setor,sist,fis,unid,obs});
+  renderInv();
+  ['inv-cod','inv-desc','inv-sist','inv-fis','inv-obs'].forEach(function(id){document.getElementById(id).value='';});
+  updateDash();
+}
+
+function renderInv() {
+  var tbody=document.getElementById('inv-tbody');
+  if (!S.invItems.length) {
+    tbody.innerHTML='<tr class="erow"><td colspan="8">Nenhum item lançado ainda</td></tr>';
+    document.getElementById('inv-cnt').textContent='0';
+    document.getElementById('inv-div').textContent='0';
+    document.getElementById('inv-saldo').textContent='0 un';
+    return;
+  }
+  var divs=0, saldo=0;
+  tbody.innerHTML=S.invItems.map(function(it){
+    var d=it.fis-it.sist; saldo+=d; if(d!==0)divs++;
+    var st=d===0?'st-ok':d>0?'st-warn':'st-err';
+    var sl=d===0?'OK':(d>0?'+':'')+d;
+    return '<tr><td>'+it.cod+'</td><td>'+it.desc+'</td><td>'+it.setor+'</td>'
+      +'<td>'+it.sist+' '+it.unid+'</td><td>'+it.fis+' '+it.unid+'</td>'
+      +'<td>'+(d>0?'+':'')+d+' '+it.unid+'</td>'
+      +'<td>'+(it.obs||'—')+'</td>'
+      +'<td><span class="st '+st+'">'+sl+'</span></td></tr>';
+  }).join('');
+  document.getElementById('inv-cnt').textContent=S.invItems.length;
+  document.getElementById('inv-div').textContent=divs;
+  document.getElementById('inv-saldo').textContent=(saldo>0?'+':'')+saldo+' un';
+}
+
+function enviarInv() {
+  if (!S.invItems.length) { alert('Nenhum item para enviar.'); return; }
+  showAlert('inv-alert');
+  addHist('Inventário',S.invItems.length+' itens enviados','Geral','st-info','Enviado');
+  updateDash();
+}
+
+function limparInv() {
+  S.invItems=[]; renderInv(); updateDash();
+}
+
+// ═══════════════════════════════════════════
+// PERDAS
+// ═══════════════════════════════════════════
+function addPerda() {
+  var prod=document.getElementById('p-prod').value.trim();
+  var setor=document.getElementById('p-setor').value;
+  var motivo=document.getElementById('p-motivo').value;
+  var qtd=parseFloat(document.getElementById('p-qtd').value)||0;
+  var valor=parseFloat(document.getElementById('p-valor').value)||0;
+  var obs=document.getElementById('p-obs').value;
+  if (!prod||qtd===0) { alert('Informe produto e quantidade.'); return; }
+  var total=qtd*valor;
+  var now=new Date();
+  var hora=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  S.perdaItems.push({prod,setor,motivo,qtd,valor,total,hora,obs});
+  renderPerdas();
+  ['p-prod','p-cod','p-qtd','p-valor','p-obs'].forEach(function(id){document.getElementById(id).value='';});
+  showAlert('p-alert');
+  addHist('Perda',prod+' — '+qtd+' un ('+motivo+')',setor,'st-err','Lançado');
+  updateDash();
+}
+
+function renderPerdas() {
+  var tbody=document.getElementById('p-tbody');
+  if (!S.perdaItems.length) {
+    tbody.innerHTML='<tr class="erow"><td colspan="8">Nenhuma perda registrada hoje</td></tr>';
+    document.getElementById('p-total').textContent='R$ 0,00';
+    document.getElementById('p-cnt').textContent='0';
+    document.getElementById('p-maior').textContent='—';
+    document.getElementById('p-maior-prod').textContent='—';
+    return;
+  }
+  var totalG=0, maior={total:0,prod:''};
+  tbody.innerHTML=S.perdaItems.map(function(it){
+    totalG+=it.total;
+    if(it.total>maior.total)maior={total:it.total,prod:it.prod};
+    return '<tr><td>'+it.hora+'</td><td>'+it.prod+'</td><td>'+it.setor+'</td>'
+      +'<td>'+it.motivo+'</td><td>'+it.qtd+'</td>'
+      +'<td>R$ '+it.valor.toFixed(2)+'</td>'
+      +'<td><strong>R$ '+it.total.toFixed(2)+'</strong></td>'
+      +'<td><span class="st st-err">Lançado</span></td></tr>';
+  }).join('');
+  document.getElementById('p-total').textContent='R$ '+totalG.toFixed(2);
+  document.getElementById('p-cnt').textContent=S.perdaItems.length;
+  document.getElementById('p-maior').textContent='R$ '+maior.total.toFixed(2);
+  document.getElementById('p-maior-prod').textContent=maior.prod;
+}
+
+function limparPerdas() {
+  S.perdaItems=[]; renderPerdas(); updateDash();
+}
+
+// ═══════════════════════════════════════════
+// USUÁRIOS
+// ═══════════════════════════════════════════
+var editingUserId=null, userFilter='todos';
+
+function abrirModalUser() {
+  editingUserId=null;
+  document.getElementById('mu-title').textContent='Novo Usuário';
+  ['u-nome','u-email','u-senha','u-senha2','u-cargo'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('u-perfil').value='operator';
+  document.getElementById('u-setor').value='Geral';
+  document.getElementById('mu-err').style.display='none';
+  document.getElementById('modal-user').style.display='flex';
+}
+
+function fecharModalUser() {
+  document.getElementById('modal-user').style.display='none';
+  editingUserId=null;
+}
+
+function editarUser(id) {
+  var u=getUsers().find(function(x){return x.id===id;});
+  if (!u) return;
+  editingUserId=id;
+  document.getElementById('mu-title').textContent='Editar Usuário';
+  document.getElementById('u-nome').value=u.nome;
+  document.getElementById('u-email').value=u.email;
+  document.getElementById('u-senha').value=u.senha;
+  document.getElementById('u-senha2').value=u.senha;
+  document.getElementById('u-perfil').value=u.perfil;
+  document.getElementById('u-setor').value=u.setor||'Geral';
+  document.getElementById('u-cargo').value=u.cargo||'';
+  document.getElementById('mu-err').style.display='none';
+  document.getElementById('modal-user').style.display='flex';
+}
+
+function salvarUser() {
+  var nome=document.getElementById('u-nome').value.trim();
+  var email=document.getElementById('u-email').value.trim().toLowerCase();
+  var senha=document.getElementById('u-senha').value;
+  var senha2=document.getElementById('u-senha2').value;
+  var perfil=document.getElementById('u-perfil').value;
+  var setor=document.getElementById('u-setor').value;
+  var cargo=document.getElementById('u-cargo').value.trim();
+  var err=document.getElementById('mu-err');
+  if (!nome){err.textContent='Informe o nome.';err.style.display='block';return;}
+  if (!email||email.indexOf('@')<0){err.textContent='E-mail inválido.';err.style.display='block';return;}
+  if (senha.length<4){err.textContent='Senha com mínimo 4 caracteres.';err.style.display='block';return;}
+  if (senha!==senha2){err.textContent='Senhas não coincidem.';err.style.display='block';return;}
+  var users=getUsers();
+  var dup=users.find(function(u){return u.email.toLowerCase()===email && u.id!==editingUserId;});
+  if (dup){err.textContent='E-mail já cadastrado.';err.style.display='block';return;}
+  if (editingUserId) {
+    users=users.map(function(u){return u.id===editingUserId?Object.assign({},u,{nome,email,senha,perfil,setor,cargo}):u;});
+  } else {
+    users.push({id:genId(),nome,email,senha,perfil,setor,cargo,ativo:true});
+  }
+  saveUsers(users);
+  fecharModalUser();
+  renderUsers();
+}
+
+function excluirUser(id) {
+  if (!confirm('Excluir este usuário?')) return;
+  saveUsers(getUsers().filter(function(u){return u.id!==id;}));
+  renderUsers();
+}
+
+function toggleAtivo(id) {
+  saveUsers(getUsers().map(function(u){return u.id===id?Object.assign({},u,{ativo:!u.ativo}):u;}));
+  renderUsers();
+}
+
+function filtrarUsers(f,btn) {
+  userFilter=f;
+  document.querySelectorAll('#u-filter-tabs .tab').forEach(function(t){t.classList.remove('on');});
+  btn.classList.add('on');
+  renderUsers();
+}
+
+var UPLABEL={admin:'Administrador',gerencia:'Gerência',operator:'Operador',prevencao:'Prevenção'};
+var UPCLS={admin:'st-info',gerencia:'st-info',operator:'st-ok',prevencao:'st-err'};
+
+function renderUsers() {
+  var users=getUsers();
+  var filtered=userFilter==='todos'?users:users.filter(function(u){return u.perfil===userFilter;});
+  var tbody=document.getElementById('u-tbody');
+  if (!filtered.length){tbody.innerHTML='<tr class="erow"><td colspan="7">Nenhum usuário neste perfil</td></tr>';return;}
+  tbody.innerHTML=filtered.map(function(u){
+    var actions = u.id==='admin'
+      ? '<span style="font-size:11px;color:var(--t3)">protegido</span>'
+      : '<button class="btn btn-s btn-sm" onclick="editarUser(\''+u.id+'\')">Editar</button>'
+        +'<button class="btn btn-s btn-sm" onclick="toggleAtivo(\''+u.id+'\')" style="'+(u.ativo?'color:var(--am)':'color:var(--g)')+'">'+(u.ativo?'Inativar':'Ativar')+'</button>'
+        +'<button class="btn btn-d btn-sm" onclick="excluirUser(\''+u.id+'\')">Excluir</button>';
+    return '<tr><td><strong>'+u.nome+'</strong></td><td>'+u.email+'</td>'
+      +'<td><span class="st '+(UPCLS[u.perfil]||'st-ok')+'">'+(UPLABEL[u.perfil]||u.perfil)+'</span></td>'
+      +'<td>'+(u.setor||'—')+'</td>'
+      +'<td style="font-size:12px;color:var(--t3)">'+(u.cargo||'—')+'</td>'
+      +'<td><span class="st '+(u.ativo?'st-ok':'st-warn')+'">'+(u.ativo?'Ativo':'Inativo')+'</span></td>'
+      +'<td style="display:flex;gap:4px;flex-wrap:wrap">'+actions+'</td></tr>';
+  }).join('');
+  document.getElementById('u-ger').textContent=users.filter(function(u){return u.perfil==='gerencia';}).length;
+  document.getElementById('u-op').textContent=users.filter(function(u){return u.perfil==='operator';}).length;
+  document.getElementById('u-prev').textContent=users.filter(function(u){return u.perfil==='prevencao';}).length;
+}
+
+// ═══════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════
+function addHist(tipo,desc,setor,stCls,stLabel) {
+  var now=new Date();
+  var hora=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  S.historico.unshift({hora,tipo,desc,setor,stCls,stLabel,op:S.currentUser?S.currentUser.nome:'—'});
+}
+
+function updateDash() {
+  var isAdmin = S.role==='admin';
+  var isGer = S.role==='gerencia';
+  var isAdmOrGer = isAdmin||isGer;
+
+  // Checklist: para admin/gerencia mostra total de envios do dia, para operador mostra progresso local
+  var today = new Date().toISOString().slice(0,10);
+  var resultados = getResultados();
+  var resultadosHoje = resultados.filter(function(r){ return r.dataHora && r.dataHora.indexOf(new Date().toLocaleDateString('pt-BR'))===0; });
+
+  if (isAdmOrGer) {
+    // Admin vê total de envios de todos os usuários hoje
+    var totalEnvios = resultadosHoje.length;
+    var completos = resultadosHoje.filter(function(r){return r.pct===100;}).length;
+    var mediaGeral = totalEnvios ? Math.round(resultadosHoje.reduce(function(s,r){return s+r.pct;},0)/totalEnvios) : 0;
+    document.getElementById('dck-val').textContent=completos+'/'+totalEnvios+' envios';
+    document.getElementById('dck-bar').style.width=mediaGeral+'%';
+    document.getElementById('dck-pct').textContent=totalEnvios ? mediaGeral+'% média hoje' : 'Nenhum envio hoje';
+  } else {
+    // Operador vê seu próprio progresso local
+    var allCLs=getMyCLs();
+    var allKeys=[];
+    allCLs.forEach(function(cl){cl.itens.forEach(function(i){allKeys.push(cl.id+'_'+i.t);});});
+    var done=allKeys.filter(function(k){return S.checkState[k];}).length;
+    var total=allKeys.length;
+    var pct=total?Math.round(done/total*100):0;
+    document.getElementById('dck-val').textContent=done+'/'+total;
+    document.getElementById('dck-bar').style.width=pct+'%';
+    document.getElementById('dck-pct').textContent=pct+'% concluído';
+  }
+
+  var totalP=S.perdaItems.reduce(function(s,i){return s+i.total;},0);
+  document.getElementById('dp-val').textContent='R$ '+totalP.toFixed(2);
+  document.getElementById('dp-cnt').textContent=S.perdaItems.length+' registros';
+  var divs=S.invItems.filter(function(i){return i.fis!==i.sist;}).length;
+  document.getElementById('ddiv-val').textContent=divs;
+  document.getElementById('dinv-val').textContent=S.invItems.length;
+
+  // Histórico: admin vê todos os envios do localStorage + sessão local; operador vê só sessão
+  var tbody=document.getElementById('d-hist');
+  var rows = [];
+
+  if (isAdmOrGer) {
+    // Mostrar resultados de checklists enviados hoje por todos
+    var PLABEL={admin:'Administrador',gerencia:'Gerência',operator:'Operador',prevencao:'Prevenção'};
+    resultadosHoje.slice().reverse().slice(0,10).forEach(function(r){
+      var st = r.pct===100?'st-ok':r.pct>=50?'st-warn':'st-err';
+      rows.push('<tr>'
+        +'<td>'+r.dataHora.split(' ')[1]+'</td>'
+        +'<td><span class="st st-info">Checklist</span></td>'
+        +'<td>'+r.checklistNome+'</td>'
+        +'<td>'+r.setor+'</td>'
+        +'<td>'+r.operador+'</td>'
+        +'<td><span class="st '+st+'">'+r.pct+'%</span></td>'
+        +'</tr>');
+    });
+    // Also add local session events
+    S.historico.slice(0,5).forEach(function(h){
+      if (h.tipo !== 'Checklist') {
+        rows.push('<tr><td>'+h.hora+'</td><td><span class="st st-info">'+h.tipo+'</span></td><td>'+h.desc+'</td><td>'+h.setor+'</td><td>'+h.op+'</td><td><span class="st '+h.stCls+'">'+h.stLabel+'</span></td></tr>');
+      }
+    });
+  } else {
+    S.historico.slice(0,8).forEach(function(h){
+      rows.push('<tr><td>'+h.hora+'</td><td><span class="st st-info">'+h.tipo+'</span></td><td>'+h.desc+'</td><td>'+h.setor+'</td><td>'+h.op+'</td><td><span class="st '+h.stCls+'">'+h.stLabel+'</span></td></tr>');
+    });
+  }
+
+  if (!rows.length) {
+    tbody.innerHTML='<tr class="erow"><td colspan="6">Nenhuma ocorrência hoje</td></tr>';
+  } else {
+    tbody.innerHTML = rows.join('');
+  }
+}
+
+// ═══════════════════════════════════════════
+// CHARTS
+// ═══════════════════════════════════════════
+function initDashCharts() {
+  S.dashCharts.perdas = new Chart(document.getElementById('chartPerdas'),{
+    type:'doughnut',
+    data:{labels:['Perecíveis','Açougue','Frios','Hortifruti','Mercearia','Outros'],
+      datasets:[{data:[32,18,20,14,10,6],backgroundColor:['#c0392b','#a93226','#1a5276','#2d9e62','#d68910','#95a5a6'],borderWidth:3,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12}}}}
+  });
+  var labels=getMyCLs().map(function(cl){return cl.label.substring(0,18);});
+  var data=getMyCLs().map(function(cl){
+    var all=cl.itens.map(function(i){return cl.id+'_'+i.t;});
+    var d=all.filter(function(k){return S.checkState[k];}).length;
+    return all.length?Math.round(d/all.length*100):0;
+  });
+  S.dashCharts.check = new Chart(document.getElementById('chartCheck'),{
+    type:'bar',
+    data:{labels:labels,datasets:[{label:'%',data:data,backgroundColor:'#2d9e62',borderRadius:5}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{max:100,ticks:{callback:function(v){return v+'%';},font:{size:11}}}}}
+  });
+}
+
+function initRelCharts() {
+  if (S.relCharts.ev) return;
+  S.relCharts.ev = new Chart(document.getElementById('chartEv'),{
+    type:'bar',
+    data:{labels:['Nov','Dez','Jan','Fev','Mar','Abr'],
+      datasets:[{label:'Perdas (R$)',data:[0,0,0,0,0,0],backgroundColor:'#2d9e62',borderRadius:6}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{y:{ticks:{callback:function(v){return 'R$'+v;}},suggestedMax:100}}}
+  });
+  S.relCharts.set = new Chart(document.getElementById('chartSet'),{
+    type:'pie',
+    data:{labels:['Perecíveis','Frios','Mercearia','Hortifruti','Açougue'],
+      datasets:[{data:[0,0,0,0,0],backgroundColor:['#c0392b','#1a5276','#2d9e62','#d68910','#8e44ad'],borderWidth:3,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11},boxWidth:12}}}}
+  });
+}
+
+function renderRelatorios() {
+  // Metrics from session data
+  var totalPerdas = S.perdaItems.reduce(function(s,i){return s+i.total;},0);
+  var resultados = getResultados();
+  var divs = S.invItems.filter(function(i){return i.fis!==i.sist;}).length;
+  document.getElementById('rel-perdas').textContent = 'R$ '+totalPerdas.toFixed(2);
+  document.getElementById('rel-checklists').textContent = resultados.length;
+  document.getElementById('rel-inv').textContent = S.invItems.length;
+  document.getElementById('rel-div').textContent = divs;
+
+  // Update pie chart with real perda setor data
+  if (S.relCharts.set) {
+    var setores = ['Perecíveis','Frios','Mercearia','Hortifruti','Açougue'];
+    var setorData = setores.map(function(s){
+      return S.perdaItems.filter(function(p){return p.setor===s;}).reduce(function(sum,p){return sum+p.total;},0);
+    });
+    S.relCharts.set.data.datasets[0].data = setorData;
+    S.relCharts.set.update();
+  }
+
+  // Equipe — agrupado por operador a partir dos resultados enviados
+  var tbody = document.getElementById('rel-equipe-tbody');
+  if (!resultados.length) {
+    tbody.innerHTML = '<tr class="erow"><td colspan="6">Nenhum checklist enviado ainda</td></tr>';
+    return;
+  }
+  var ops = {};
+  resultados.forEach(function(r){
+    if (!ops[r.operador]) ops[r.operador] = {perfil:r.perfil, enviados:0, completos:0, somaPct:0, ultimo:''};
+    ops[r.operador].enviados++;
+    if (r.pct===100) ops[r.operador].completos++;
+    ops[r.operador].somaPct += r.pct;
+    ops[r.operador].ultimo = r.dataHora;
+  });
+  var PLABEL = {admin:'Administrador',gerencia:'Gerência',operator:'Operador',prevencao:'Prevenção'};
+  var PCLS = {admin:'st-info',gerencia:'st-info',operator:'st-ok',prevencao:'st-err'};
+  tbody.innerHTML = Object.keys(ops).map(function(nome){
+    var o = ops[nome];
+    var media = Math.round(o.somaPct/o.enviados);
+    var mst = media===100?'st-ok':media>=50?'st-warn':'st-err';
+    return '<tr>'
+      +'<td><strong>'+nome+'</strong></td>'
+      +'<td><span class="st '+(PCLS[o.perfil]||'st-ok')+'">'+(PLABEL[o.perfil]||o.perfil)+'</span></td>'
+      +'<td>'+o.enviados+'</td>'
+      +'<td><span class="st '+(o.completos===o.enviados?'st-ok':'st-warn')+'">'+o.completos+'/'+o.enviados+'</span></td>'
+      +'<td><span class="st '+mst+'">'+media+'%</span></td>'
+      +'<td style="font-size:12px;color:var(--t3)">'+o.ultimo+'</td>'
+      +'</tr>';
+  }).join('');
+}
+
+// ═══════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = 'position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:#1a7a4a;color:#fff;padding:12px 24px;border-radius:30px;font-size:14px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.2);z-index:999;transition:opacity .3s;white-space:nowrap';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function(){ t.style.opacity='0'; }, 3000);
+}
+
+function showAlert(id) {
+  var el=document.getElementById(id);
+  if (!el) return;
+  el.style.display='flex';
+  setTimeout(function(){el.style.display='none';},3500);
+}
+</script>
+</body>
+</html>
