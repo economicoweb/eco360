@@ -2013,7 +2013,7 @@ function initDashCharts() {
 }
 
 function switchRelClTab(sub, btn) {
-  ['geral','executivo','naoconformidade','ranking'].forEach(function(t){
+  ['geral','executivo','naoconformidade','ranking','corporativo'].forEach(function(t){
     var el = document.getElementById('rel-cl-'+t);
     if (el) el.style.display = t===sub ? 'block' : 'none';
   });
@@ -2023,10 +2023,11 @@ function switchRelClTab(sub, btn) {
   if (sub==='executivo') { renderRelExecutivo(); }
   if (sub==='naoconformidade') { renderRelNaoConformidade(); }
   if (sub==='ranking') { renderRelRanking(); }
+  if (sub==='corporativo') { renderRelCorporativoTab(); }
 }
 
 function switchRelTab(tab, btn) {
-  ['checklist','inventario','perdas','corporativo'].forEach(function(t){
+  ['checklist','inventario','perdas'].forEach(function(t){
     var el = document.getElementById('rel-tab-'+t);
     if (el) el.style.display = t===tab ? 'block' : 'none';
   });
@@ -2038,7 +2039,6 @@ function switchRelTab(tab, btn) {
   }
   if (tab==='inventario') renderRelInventario();
   if (tab==='perdas') renderRelPerdas();
-  if (tab==='corporativo') renderRelCorporativoTab();
 }
 
 var resumoDiaFiltro = 'hoje';

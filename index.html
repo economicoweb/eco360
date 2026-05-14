@@ -262,7 +262,6 @@
           <div class="tab on" onclick="switchRelTab('checklist',this)">✅ Checklist</div>
           <div class="tab" onclick="switchRelTab('inventario',this)">📦 Inventario</div>
           <div class="tab" onclick="switchRelTab('perdas',this)">📉 Perdas</div>
-          <div class="tab" onclick="switchRelTab('corporativo',this)">📊 Corporativo</div>
         </div>
 
         <!-- ===== ABA CHECKLIST ===== -->
@@ -273,6 +272,7 @@
             <div class="tab" onclick="switchRelClTab('executivo',this)">📈 Executivo</div>
             <div class="tab" onclick="switchRelClTab('naoconformidade',this)">⚠️ Nao Conformidade</div>
             <div class="tab" onclick="switchRelClTab('ranking',this)">🏆 Ranking</div>
+            <div class="tab" onclick="switchRelClTab('corporativo',this)">📊 Corporativo</div>
           </div>
 
           <!-- VISAO GERAL -->
@@ -420,50 +420,9 @@
             </div>
           </div>
 
-        </div><!-- /rel-tab-checklist -->
-
-        <!-- ===== ABA INVENTARIO ===== -->
-        <div id="rel-tab-inventario" style="display:none">
-          <div class="g4" style="margin-bottom:20px">
-            <div class="mc"><div class="lbl">Itens Inventariados</div><div class="val" id="rel-inv-total">0</div></div>
-            <div class="mc"><div class="lbl">Divergencias</div><div class="val dn" id="rel-inv-div">0</div></div>
-            <div class="mc"><div class="lbl">Itens OK</div><div class="val up" id="rel-inv-ok">0</div></div>
-            <div class="mc"><div class="lbl">Saldo Total</div><div class="val" id="rel-inv-saldo">0 un</div></div>
-          </div>
-          <div class="card" style="margin-bottom:14px">
-            <div class="card-hdr"><div class="card-title">Divergencias por Setor</div></div>
-            <table><thead><tr><th>Setor</th><th>Itens</th><th>Divergencias</th><th>Saldo</th><th>Status</th></tr></thead>
-            <tbody id="rel-inv-setor-tbody"><tr class="erow"><td colspan="5">Nenhum inventario lancado</td></tr></tbody></table>
-          </div>
-          <div class="card">
-            <div class="card-hdr"><div class="card-title">Itens com Divergencia</div></div>
-            <table><thead><tr><th>Produto</th><th>Setor</th><th>Sistema</th><th>Fisico</th><th>Diferenca</th><th>Status</th></tr></thead>
-            <tbody id="rel-inv-itens-tbody"><tr class="erow"><td colspan="6">Nenhuma divergencia encontrada</td></tr></tbody></table>
-          </div>
-        </div>
-
-        <!-- ===== ABA PERDAS ===== -->
-        <div id="rel-tab-perdas" style="display:none">
-          <div class="g4" style="margin-bottom:20px">
-            <div class="mc"><div class="lbl">Total de Perdas</div><div class="val dn" id="rel-perdas">R$ 0,00</div></div>
-            <div class="mc"><div class="lbl">Registros</div><div class="val" id="rel-perdas-cnt">0</div></div>
-            <div class="mc"><div class="lbl">Maior Perda</div><div class="val dn" id="rel-perdas-maior">R$ 0,00</div></div>
-            <div class="mc"><div class="lbl">Setor Critico</div><div class="val" id="rel-perdas-setor" style="font-size:16px">—</div></div>
-          </div>
-          <div class="g2" style="margin-bottom:14px">
-            <div class="card"><div class="card-hdr"><div class="card-title">Perdas por Setor</div></div><div style="position:relative;height:220px"><canvas id="chartSet"></canvas></div></div>
-            <div class="card"><div class="card-hdr"><div class="card-title">Perdas por Motivo</div></div><div style="position:relative;height:220px"><canvas id="chartMotivo"></canvas></div></div>
-          </div>
-          <div class="card">
-            <div class="card-hdr"><div class="card-title">Detalhamento de Perdas</div></div>
-            <table><thead><tr><th>Setor</th><th>Registros</th><th>Total (R$)</th><th>Maior Perda</th><th>Motivo Principal</th></tr></thead>
-            <tbody id="rel-perdas-tbody"><tr class="erow"><td colspan="5">Nenhuma perda registrada</td></tr></tbody></table>
-          </div>
-        </div>
-
-
-        <!-- ===== ABA CORPORATIVO ===== -->
-        <div id="rel-tab-corporativo" style="display:none">
+        
+            <!-- CORPORATIVO -->
+            <div id="rel-cl-corporativo" style="display:none">
           <!-- Filtros período -->
           <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px">
             <div class="fg" style="min-width:140px">
@@ -577,7 +536,51 @@
             </div>
           </div>
 
-        </div><!-- /rel-tab-corporativo -->
+        
+            </div>
+            <!-- /CORPORATIVO -->
+        </div><!-- /rel-tab-checklist -->
+
+        <!-- ===== ABA INVENTARIO ===== -->
+        <div id="rel-tab-inventario" style="display:none">
+          <div class="g4" style="margin-bottom:20px">
+            <div class="mc"><div class="lbl">Itens Inventariados</div><div class="val" id="rel-inv-total">0</div></div>
+            <div class="mc"><div class="lbl">Divergencias</div><div class="val dn" id="rel-inv-div">0</div></div>
+            <div class="mc"><div class="lbl">Itens OK</div><div class="val up" id="rel-inv-ok">0</div></div>
+            <div class="mc"><div class="lbl">Saldo Total</div><div class="val" id="rel-inv-saldo">0 un</div></div>
+          </div>
+          <div class="card" style="margin-bottom:14px">
+            <div class="card-hdr"><div class="card-title">Divergencias por Setor</div></div>
+            <table><thead><tr><th>Setor</th><th>Itens</th><th>Divergencias</th><th>Saldo</th><th>Status</th></tr></thead>
+            <tbody id="rel-inv-setor-tbody"><tr class="erow"><td colspan="5">Nenhum inventario lancado</td></tr></tbody></table>
+          </div>
+          <div class="card">
+            <div class="card-hdr"><div class="card-title">Itens com Divergencia</div></div>
+            <table><thead><tr><th>Produto</th><th>Setor</th><th>Sistema</th><th>Fisico</th><th>Diferenca</th><th>Status</th></tr></thead>
+            <tbody id="rel-inv-itens-tbody"><tr class="erow"><td colspan="6">Nenhuma divergencia encontrada</td></tr></tbody></table>
+          </div>
+        </div>
+
+        <!-- ===== ABA PERDAS ===== -->
+        <div id="rel-tab-perdas" style="display:none">
+          <div class="g4" style="margin-bottom:20px">
+            <div class="mc"><div class="lbl">Total de Perdas</div><div class="val dn" id="rel-perdas">R$ 0,00</div></div>
+            <div class="mc"><div class="lbl">Registros</div><div class="val" id="rel-perdas-cnt">0</div></div>
+            <div class="mc"><div class="lbl">Maior Perda</div><div class="val dn" id="rel-perdas-maior">R$ 0,00</div></div>
+            <div class="mc"><div class="lbl">Setor Critico</div><div class="val" id="rel-perdas-setor" style="font-size:16px">—</div></div>
+          </div>
+          <div class="g2" style="margin-bottom:14px">
+            <div class="card"><div class="card-hdr"><div class="card-title">Perdas por Setor</div></div><div style="position:relative;height:220px"><canvas id="chartSet"></canvas></div></div>
+            <div class="card"><div class="card-hdr"><div class="card-title">Perdas por Motivo</div></div><div style="position:relative;height:220px"><canvas id="chartMotivo"></canvas></div></div>
+          </div>
+          <div class="card">
+            <div class="card-hdr"><div class="card-title">Detalhamento de Perdas</div></div>
+            <table><thead><tr><th>Setor</th><th>Registros</th><th>Total (R$)</th><th>Maior Perda</th><th>Motivo Principal</th></tr></thead>
+            <tbody id="rel-perdas-tbody"><tr class="erow"><td colspan="5">Nenhuma perda registrada</td></tr></tbody></table>
+          </div>
+        </div>
+
+
 
       </div><!-- /panel-relatorios -->
             <div id="panel-usuarios" class="panel">
