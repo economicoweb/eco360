@@ -325,6 +325,7 @@ function finalizarLogin(found) {
   document.getElementById('lErr').style.display='none';
   S.role = found.perfil;
   S.currentUser = found;
+  sessionStorage.setItem('eco_session', JSON.stringify(found));
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('app').style.display='flex';
   setupRole();
@@ -408,6 +409,7 @@ function finalizarLogin(found) {
 }
 
 function doLogout() {
+  sessionStorage.removeItem('eco_session');
   document.getElementById('loginScreen').style.display='flex';
   document.getElementById('app').style.display='none';
   document.querySelectorAll('.sb-item').forEach(function(i){i.classList.remove('active');});
@@ -2684,3 +2686,17 @@ function showAlert(id) {
   el.style.display='flex';
   setTimeout(function(){el.style.display='none';},3500);
 }
+
+// Restaura sessao ao recarregar a pagina
+document.addEventListener('DOMContentLoaded', function() {
+  try {
+    var saved = sessionStorage.getItem('eco_session');
+    if (saved) {
+      var user = JSON.parse(saved);
+      if (user && user.id && user.perfil) {
+        finalizarLogin(user);
+        return;
+      }
+    }
+  } catch(e) {}
+});
