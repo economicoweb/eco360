@@ -96,6 +96,7 @@ function saveCheckState() {
     db.collection('checkstates').doc(userId+'_'+today).set({
       userId: userId,
       date: today,
+      localDate: getLocalDate(),
       state: JSON.stringify(stateParaSalvar)
     }).catch(function(){});
   } catch(e) {}
@@ -394,7 +395,7 @@ function finalizarLogin(found) {
       var userId = found.id;
       var hoje = getLocalDate();
       return db.collection('checkstates').doc(userId+'_'+hoje).get().then(function(doc){
-        if (doc.exists && doc.data().state) {
+        if (doc.exists && doc.data().state && doc.data().localDate === getLocalDate()) {
           try { S.checkState = JSON.parse(doc.data().state); } catch(e){ S.checkState={}; }
         } else {
           S.checkState = {};
@@ -561,7 +562,7 @@ function sincronizarEstadoFirebase() {
   // Load BOTH checkstate and resultados fresh from Firebase, then rebuild UI
   var promiseState = db.collection('checkstates').doc(userId+'_'+hoje).get()
     .then(function(doc){
-      if (doc.exists && doc.data().state) {
+      if (doc.exists && doc.data().state && doc.data().localDate === getLocalDate()) {
         try {
           var fbState = JSON.parse(doc.data().state);
           S.checkState = fbState;
