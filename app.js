@@ -8,6 +8,36 @@
 });
 var db = firebase.firestore();
 
+// ── PWA: persistência offline do Firestore ──
+db.enablePersistence({synchronizeTabs: true}).catch(function(err){
+  if (err.code === 'failed-precondition') {
+    console.warn('Offline: múltiplas abas abertas — persistência desativada nesta aba.');
+  } else if (err.code === 'unimplemented') {
+    console.warn('Offline: este navegador não suporta persistência.');
+  }
+});
+
+// ── PWA: registrar Service Worker ──
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(function(err){
+    console.warn('SW registro falhou:', err);
+  });
+}
+
+// ── PWA: monitorar conexão ──
+function atualizarStatusConexao() {
+  var banner = document.getElementById('offline-banner');
+  if (!banner) return;
+  banner.style.display = navigator.onLine ? 'none' : 'block';
+  // Empurra conteúdo para baixo quando offline
+  var app = document.getElementById('app');
+  if (app) app.style.paddingTop = navigator.onLine ? '' : '40px';
+}
+window.addEventListener('online',  atualizarStatusConexao);
+window.addEventListener('offline', atualizarStatusConexao);
+// Verifica na carga
+document.addEventListener('DOMContentLoaded', atualizarStatusConexao);
+
 // ===========================================
 // DADOS BUILTIN DE CHECKLISTS
 // ===========================================
@@ -320,6 +350,128 @@ function limparResultadosFirebase() {
 function genId() { return 'id_'+Date.now()+'_'+Math.random().toString(36).substr(2,5); }
 
 // ===========================================
+// AGENDA OBRIGATÓRIA & NOTIFICAÇÕES
+// ===========================================
+
+// Retorna os checklists que são obrigatórios para HOJE nesta loja
+function getChecklistsObrigatoriosHoje() {
+  var diaSemana = new Date().getDay(); // 0=Dom … 6=Sáb
+  var myLoja = S.currentUser ? (S.currentUser.loja || '').toLowerCase() : '';
+  return getCustomCLs().filter(function(cl) {
+    var dias = cl.diasObrigatorios || [];
+    if (!dias.length) return false;             // sem agenda = não obrigatório
+    if (!dias.some(function(d){ return Number(d) === diaSemana; })) return false;
+    // Filtra por loja se o checklist tiver loja configurada
+    if (cl.loja && myLoja && cl.loja.toLowerCase() !== myLoja) return false;
+    return true;
+  });
+}
+
+// Retorna pendências: checklists obrigatórios que ainda não foram enviados hoje
+// e cuja hora limite já passou (ou ainda não passou — ambos são retornados com flag)
+function getPendencias() {
+  var obrigatorios = getChecklistsObrigatoriosHoje();
+  if (!obrigatorios.length) return [];
+  var hoje = new Date().toLocaleDateString('pt-BR');
+  var agora = new Date();
+  var horaAgora = agora.getHours() * 60 + agora.getMinutes();
+  var resultados = getResultados();
+  var pendencias = [];
+  obrigatorios.forEach(function(cl) {
+    var enviado = resultados.some(function(r){
+      return r.checklistId === cl.id && r.dataHora && r.dataHora.indexOf(hoje) === 0;
+    });
+    if (!enviado) {
+      var partes = (cl.horaLimite || '10:00').split(':');
+      var horaLimMin = parseInt(partes[0]) * 60 + parseInt(partes[1] || 0);
+      pendencias.push({
+        cl: cl,
+        atrasado: horaAgora > horaLimMin,
+        horaLimite: cl.horaLimite || '10:00'
+      });
+    }
+  });
+  return pendencias;
+}
+
+// Abre painel de pendências
+function abrirPendentes() {
+  var pendencias = getPendencias();
+  var lista = document.getElementById('pendentes-lista');
+  if (!lista) return;
+  if (!pendencias.length) {
+    lista.innerHTML = '<div style="text-align:center;padding:20px;color:var(--g);font-weight:600">✅ Todos os checklists obrigatórios de hoje foram enviados!</div>';
+  } else {
+    lista.innerHTML = pendencias.map(function(p){
+      var cor = p.atrasado ? '#c0392b' : '#e67e22';
+      var icone = p.atrasado ? '🔴' : '🟡';
+      return '<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--gray);border-radius:10px;border-left:4px solid '+cor+'">'
+        +'<div style="font-size:22px">'+icone+'</div>'
+        +'<div style="flex:1">'
+        +'<div style="font-weight:600;font-size:14px">'+p.cl.nome+'</div>'
+        +'<div style="font-size:12px;color:var(--t3)">'+p.cl.setor+' · Turno: '+p.cl.turno+'</div>'
+        +'<div style="font-size:12px;color:'+cor+';font-weight:600;margin-top:2px">'
+        +(p.atrasado ? '⚠️ Atrasado — limite era '+p.horaLimite : '⏰ Limite: '+p.horaLimite)
+        +'</div>'
+        +'</div>'
+        +'</div>';
+    }).join('');
+  }
+  document.getElementById('modal-pendentes').style.display = 'flex';
+}
+
+// Atualiza o badge de alertas no sidebar
+function atualizarBadgeAlertas() {
+  var badge = document.getElementById('badge-alertas');
+  if (!badge) return;
+  // Só mostra para perfis que gerenciam
+  var u = S.currentUser;
+  if (!u || (u.perfil !== 'admin' && u.perfil !== 'gerencia')) return;
+  var p = getPendencias().filter(function(x){ return x.atrasado; });
+  var navBtn = document.getElementById('nav-alertas');
+  if (navBtn) navBtn.style.display = 'flex';
+  if (p.length > 0) {
+    badge.style.display = 'flex';
+    badge.textContent = p.length;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// Pede permissão e envia notificação nativa (toast fallback se negada)
+function notificarPendencias(pendencias) {
+  if (!pendencias.length) return;
+  var atrasados = pendencias.filter(function(p){ return p.atrasado; });
+  if (!atrasados.length) return;
+  var msg = atrasados.length === 1
+    ? 'Checklist pendente: ' + atrasados[0].cl.nome
+    : atrasados.length + ' checklists obrigatórios em atraso!';
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification('⚠️ Cahu360 — Pendências', {body: msg, icon: './logo.png'});
+  } else {
+    showToast('⚠️ ' + msg, 6000);
+  }
+}
+
+// Solicita permissão de notificação (chamado no login de gerência/admin)
+function pedirPermissaoNotificacao() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+// Verificação periódica — chamada no login e a cada 15min
+var _alertaInterval = null;
+function iniciarVerificacaoPeriodica() {
+  if (_alertaInterval) clearInterval(_alertaInterval);
+  atualizarBadgeAlertas();
+  _alertaInterval = setInterval(function(){
+    atualizarBadgeAlertas();
+    notificarPendencias(getPendencias());
+  }, 15 * 60 * 1000); // a cada 15 minutos
+}
+
+// ===========================================
 // STATE
 // ===========================================
 var S = {
@@ -528,6 +680,14 @@ function setupRole() {
   show('nav-central', isAdmin);
   show('nav-relat', isAdmin);
   show('nav-users', isAdmin);
+  // Botão de alertas visível para admin e gerência
+  show('nav-alertas', isAdmOrGer);
+  // Inicia verificação periódica de pendências para gestores
+  if (isAdmOrGer) {
+    pedirPermissaoNotificacao();
+    // Aguarda carregar os dados antes de checar
+    setTimeout(iniciarVerificacaoPeriodica, 3000);
+  }
 }
 
 // ── Mobile sidebar ──
@@ -1359,10 +1519,13 @@ function abrirModalCL() {
   editingCLId = null;
   nclItens = [];
   document.getElementById('mcl-title').textContent = 'Novo Checklist';
-  ['ncl-nome','ncl-desc','ncl-item-txt','ncl-item-obs'].forEach(function(id){document.getElementById(id).value='';}); document.getElementById('ncl-item-foto').checked=false;
+  ['ncl-nome','ncl-desc','ncl-item-txt','ncl-item-obs'].forEach(function(id){document.getElementById(id).value='';}); document.getElementById('ncl-item-foto').value='none';
   document.getElementById('ncl-perfil').value='operator';
   document.getElementById('ncl-setor').value='Açougue';
   document.getElementById('ncl-turno').value='Abertura';
+  // Limpar agenda obrigatória
+  [0,1,2,3,4,5,6].forEach(function(d){ var el=document.getElementById('dia-'+d); if(el) el.checked=false; });
+  var hl = document.getElementById('ncl-hora-limite'); if(hl) hl.value='10:00';
   document.getElementById('mcl-err').style.display='none';
   renderNclItens();
   document.getElementById('modal-cl').style.display='flex';
@@ -1417,11 +1580,16 @@ function salvarCL() {
   var err = document.getElementById('mcl-err');
   if (!nome) { err.textContent='Informe o nome.'; err.style.display='block'; return; }
   if (!nclItens.length) { err.textContent='Adicione pelo menos 1 item.'; err.style.display='block'; return; }
+  // Agenda obrigatória
+  var diasObrigatorios = [0,1,2,3,4,5,6].filter(function(d){
+    var el = document.getElementById('dia-'+d); return el && el.checked;
+  });
+  var horaLimite = (document.getElementById('ncl-hora-limite')||{}).value || '10:00';
   var list = getCustomCLs();
   if (editingCLId) {
-    list = list.map(function(cl){ return cl.id===editingCLId ? Object.assign({},cl,{nome,setor,perfil,turno,desc,itens:nclItens.slice()}) : cl; });
+    list = list.map(function(cl){ return cl.id===editingCLId ? Object.assign({},cl,{nome:nome,setor:setor,perfil:perfil,turno:turno,desc:desc,itens:nclItens.slice(),diasObrigatorios:diasObrigatorios,horaLimite:horaLimite}) : cl; });
   } else {
-    list.push({id:genId(),nome,setor,perfil,turno,desc,itens:nclItens.slice(),criadoEm:new Date().toLocaleString('pt-BR'),criadoPor:S.currentUser?S.currentUser.nome:'Admin'});
+    list.push({id:genId(),nome:nome,setor:setor,perfil:perfil,turno:turno,desc:desc,itens:nclItens.slice(),diasObrigatorios:diasObrigatorios,horaLimite:horaLimite,criadoEm:new Date().toLocaleString('pt-BR'),criadoPor:S.currentUser?S.currentUser.nome:'Admin'});
   }
   saveCustomCLs(list);
   fecharModalCL();
@@ -1440,6 +1608,10 @@ function editarCL(id) {
   document.getElementById('ncl-perfil').value=cl.perfil;
   document.getElementById('ncl-turno').value=cl.turno||'Abertura';
   document.getElementById('ncl-desc').value=cl.desc||'';
+  // Agenda obrigatória
+  var dias = cl.diasObrigatorios || [];
+  [0,1,2,3,4,5,6].forEach(function(d){ var el=document.getElementById('dia-'+d); if(el) el.checked=dias.indexOf(d)>=0; });
+  var hl = document.getElementById('ncl-hora-limite'); if(hl) hl.value=cl.horaLimite||'10:00';
   document.getElementById('mcl-err').style.display='none';
   ['ncl-item-txt','ncl-item-obs'].forEach(function(id){document.getElementById(id).value='';}); document.getElementById('ncl-item-foto').value='none';
   renderNclItens();

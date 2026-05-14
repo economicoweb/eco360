@@ -4,12 +4,32 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Cahu360 Process — Gestão de Loja</title>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#FFC600"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Cahu360"/>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 
 <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
+
+<!-- BANNER OFFLINE -->
+<div id="offline-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#c0392b;color:#fff;text-align:center;padding:9px 16px;font-size:13px;font-weight:600;letter-spacing:.3px">
+  📡 Sem conexão — trabalhando offline. Os dados serão sincronizados quando a internet voltar.
+</div>
+
+<!-- PAINEL DE ALERTAS DE PENDÊNCIAS -->
+<div id="modal-pendentes" class="modal-bg" style="display:none">
+  <div class="modal-box" style="width:500px;max-height:80vh;overflow-y:auto">
+    <div class="modal-title" style="color:#c0392b">⚠️ Checklists Pendentes</div>
+    <div id="pendentes-lista" style="display:flex;flex-direction:column;gap:10px;margin:12px 0"></div>
+    <div class="btn-row"><button class="btn btn-s" onclick="document.getElementById('modal-pendentes').style.display='none'">Fechar</button></div>
+  </div>
+</div>
 
 <!-- === LOGIN === -->
 <div id="loginScreen">
@@ -53,6 +73,13 @@
       </div>
       <div class="sb-item" onclick="nav('perdas',this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Lançar Perdas
+      </div>
+
+      <!-- Botão de alertas de pendências (visível só para gerência/admin) -->
+      <div class="sb-item" id="nav-alertas" style="display:none;position:relative" onclick="abrirPendentes()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+        Alertas
+        <span id="badge-alertas" style="display:none;position:absolute;top:6px;right:10px;background:#c0392b;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;line-height:1">0</span>
       </div>
 
       <div class="sb-sec" id="sb-adm-sec" style="display:none">Administração</div>
@@ -632,6 +659,23 @@
     <div class="frow c2"><div class="fg"><label>Nome</label><input id="ncl-nome" type="text" placeholder="Ex: Açougue — Tarde"/></div><div class="fg"><label>Setor</label><select id="ncl-setor"><option>Açougue</option><option>Hortifruti</option><option>Frios</option><option>Padaria</option><option>Mercearia</option><option>Bebidas</option><option>Limpeza</option><option>Caixa</option><option>Prevenção</option><option>Gerência</option><option>Geral</option></select></div></div>
     <div class="frow c2"><div class="fg"><label>Perfil que executa</label><select id="ncl-perfil"><option value="operator">Operador</option><option value="prevencao">Prevenção</option><option value="gerencia">Gerência</option><option value="todos">Todos</option></select></div><div class="fg"><label>Turno</label><select id="ncl-turno"><option>Abertura</option><option>Manhã</option><option>Tarde</option><option>Noite</option><option>Fechamento</option><option>Qualquer</option></select></div></div>
     <div class="frow c1"><div class="fg"><label>Descrição</label><input id="ncl-desc" type="text" placeholder="Objetivo deste checklist"/></div></div>
+    <div style="background:var(--gray);border-radius:10px;padding:12px 14px;margin-top:4px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:8px">📅 Agenda obrigatória (opcional)</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" id="dia-0" value="0"/> Dom</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" id="dia-1" value="1"/> Seg</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" id="dia-2" value="2"/> Ter</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" id="dia-3" value="3"/> Qua</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" id="dia-4" value="4"/> Qui</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" id="dia-5" value="5"/> Sex</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" id="dia-6" value="6"/> Sáb</label>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <label style="font-size:12px;color:var(--t2);white-space:nowrap">Hora limite:</label>
+        <input id="ncl-hora-limite" type="time" value="10:00" style="padding:6px 10px;border:1.5px solid var(--gray2);border-radius:8px;font-size:13px;font-family:inherit;background:#fff"/>
+        <span style="font-size:11px;color:var(--t3)">Alerta se não enviado até este horário</span>
+      </div>
+    </div>
     <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin:14px 0 8px">Itens do Checklist</div>
     <div id="ncl-itens-wrap" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>
     <div style="display:flex;flex-direction:column;gap:6px;padding:12px;background:var(--gray);border-radius:9px">
