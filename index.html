@@ -262,6 +262,7 @@
           <div class="tab on" onclick="switchRelTab('checklist',this)">✅ Checklist</div>
           <div class="tab" onclick="switchRelTab('inventario',this)">📦 Inventario</div>
           <div class="tab" onclick="switchRelTab('perdas',this)">📉 Perdas</div>
+          <div class="tab" onclick="switchRelTab('corporativo',this)">📊 Corporativo</div>
         </div>
 
         <!-- ===== ABA CHECKLIST ===== -->
@@ -385,7 +386,10 @@
           <!-- RANKING -->
           <div id="rel-cl-ranking" style="display:none">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-              <div style="font-family:'Syne',sans-serif;font-size:17px;font-weight:800">Ranking de Operadores</div>
+              <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                <div style="font-family:'Syne',sans-serif;font-size:17px;font-weight:800">Ranking</div>
+                <div class="tabs" style="margin:0"><div class="tab on" id="rank-tab-op" onclick="switchRankView('operadores',this)">Operadores</div><div class="tab" id="rank-tab-loja" onclick="switchRankView('lojas',this)">Lojas</div></div>
+              </div>
               <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
                 <select id="rank-mes" onchange="renderRelRanking()" style="padding:7px 10px;border:1.5px solid var(--gray2);border-radius:8px;font-size:13px;font-family:inherit">
                   <option value="">Todos</option><option value="0">Janeiro</option><option value="1">Fevereiro</option><option value="2">Marco</option><option value="3">Abril</option><option value="4">Maio</option><option value="5">Junho</option><option value="6">Julho</option><option value="7">Agosto</option><option value="8">Setembro</option><option value="9">Outubro</option><option value="10">Novembro</option><option value="11">Dezembro</option>
@@ -396,11 +400,23 @@
                 <button class="btn btn-p btn-sm" onclick="exportarPDF('ranking')">PDF</button>
               </div>
             </div>
-            <div id="rank-podio" style="display:flex;gap:12px;justify-content:center;align-items:flex-end;margin-bottom:20px;min-height:140px"></div>
-            <div class="card">
-              <div class="card-hdr"><div class="card-title">Ranking Completo</div></div>
-              <table><thead><tr><th>#</th><th>Operador</th><th>Enviados</th><th>100%</th><th>Media %</th></tr></thead>
-              <tbody id="rank-tbody"><tr class="erow"><td colspan="5">Nenhum dado</td></tr></tbody></table>
+            <!-- VIEW OPERADORES -->
+            <div id="rank-view-op">
+              <div id="rank-podio" style="display:flex;gap:12px;justify-content:center;align-items:flex-end;margin-bottom:20px;min-height:140px"></div>
+              <div class="card">
+                <div class="card-hdr"><div class="card-title">Ranking de Operadores</div><div style="font-size:11px;color:var(--t3)">100%=10pts · 80-99%=7pts · 60-79%=4pts · abaixo=1pt</div></div>
+                <table><thead><tr><th>#</th><th>Operador</th><th>Pontos</th><th>Enviados</th><th>100%</th><th>Media %</th></tr></thead>
+                <tbody id="rank-tbody"><tr class="erow"><td colspan="6">Nenhum dado</td></tr></tbody></table>
+              </div>
+            </div>
+            <!-- VIEW LOJAS -->
+            <div id="rank-view-lojas" style="display:none">
+              <div id="rank-lojas-podio" style="display:flex;gap:12px;justify-content:center;align-items:flex-end;margin-bottom:20px;min-height:140px"></div>
+              <div class="card">
+                <div class="card-hdr"><div class="card-title">Ranking de Lojas</div><div style="font-size:11px;color:var(--t3)">100%=10pts · 80-99%=7pts · 60-79%=4pts · abaixo=1pt</div></div>
+                <table><thead><tr><th>#</th><th>Loja</th><th>Pontos</th><th>Enviados</th><th>100%</th><th>Media %</th></tr></thead>
+                <tbody id="rank-lojas-tbody"><tr class="erow"><td colspan="6">Nenhum dado</td></tr></tbody></table>
+              </div>
             </div>
           </div>
 
@@ -445,6 +461,124 @@
           </div>
         </div>
 
+
+        <!-- ===== ABA CORPORATIVO ===== -->
+        <div id="rel-tab-corporativo" style="display:none">
+          <!-- Filtros período -->
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px">
+            <div class="fg" style="min-width:140px">
+              <label>Mês</label>
+              <select id="corp-mes" onchange="renderRelCorporativoTab()" style="padding:7px 10px;border:1.5px solid var(--gray2);border-radius:8px;font-size:13px;font-family:inherit">
+                <option value="">Todos</option><option value="0">Janeiro</option><option value="1">Fevereiro</option><option value="2">Março</option><option value="3">Abril</option><option value="4">Maio</option><option value="5">Junho</option><option value="6">Julho</option><option value="7">Agosto</option><option value="8">Setembro</option><option value="9">Outubro</option><option value="10">Novembro</option><option value="11">Dezembro</option>
+              </select>
+            </div>
+            <div class="fg" style="min-width:110px">
+              <label>Ano</label>
+              <select id="corp-ano" onchange="renderRelCorporativoTab()" style="padding:7px 10px;border:1.5px solid var(--gray2);border-radius:8px;font-size:13px;font-family:inherit">
+                <option value="2026">2026</option><option value="2025">2025</option>
+              </select>
+            </div>
+          </div>
+          <!-- Sub-abas -->
+          <div class="tabs" id="rel-corp-subtabs" style="margin-bottom:16px;flex-wrap:wrap">
+            <div class="tab on" onclick="switchRelCorpTab('adesao',this)">📋 Adesão</div>
+            <div class="tab" onclick="switchRelCorpTab('tendencia',this)">📈 Tendência</div>
+            <div class="tab" onclick="switchRelCorpTab('naoconf',this)">⚠️ Não Conformidades</div>
+            <div class="tab" onclick="switchRelCorpTab('comparativo',this)">🏪 Comparativo Lojas</div>
+            <div class="tab" onclick="switchRelCorpTab('pontualidade',this)">⏰ Pontualidade</div>
+            <div class="tab" onclick="switchRelCorpTab('perdasxcl',this)">📉 Perdas×CL</div>
+            <button class="btn btn-p btn-sm" onclick="exportarPDFConsolidado()" style="margin-left:auto">📄 PDF Completo</button>
+          </div>
+
+          <!-- SUB: ADESÃO -->
+          <div id="rel-corp-adesao">
+            <div class="g3" style="margin-bottom:16px">
+              <div class="mc"><div class="lbl">Total de Lojas</div><div class="val" id="corp-ad-lojas">0</div></div>
+              <div class="mc"><div class="lbl">Média de Adesão</div><div class="val" id="corp-ad-media">—</div></div>
+              <div class="mc"><div class="lbl">Melhor Loja</div><div class="val" style="font-size:16px" id="corp-ad-melhor">—</div></div>
+            </div>
+            <div class="card">
+              <div class="card-hdr"><div class="card-title">Adesão por Loja</div></div>
+              <table><thead><tr><th>Loja</th><th>Dias c/ Envio</th><th>Total Enviados</th><th>Completados 100%</th><th>Adesão %</th></tr></thead>
+              <tbody id="corp-adesao-tbody"><tr class="erow"><td colspan="5">Nenhum dado</td></tr></tbody></table>
+            </div>
+          </div>
+
+          <!-- SUB: TENDÊNCIA -->
+          <div id="rel-corp-tendencia" style="display:none">
+            <div class="card" style="margin-bottom:14px">
+              <div class="card-hdr"><div class="card-title">Tendência Semanal — Média %</div></div>
+              <div style="position:relative;height:400px"><canvas id="chart-tendencia"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-hdr"><div class="card-title">Resumo Semanal</div></div>
+              <table><thead><tr><th>Semana</th><th>Enviados</th><th>Média %</th><th>Variação</th></tr></thead>
+              <tbody id="corp-tendencia-tbody"><tr class="erow"><td colspan="4">Nenhum dado</td></tr></tbody></table>
+            </div>
+          </div>
+
+          <!-- SUB: NÃO CONFORMIDADES -->
+          <div id="rel-corp-naoconf" style="display:none">
+            <div class="g3" style="margin-bottom:16px">
+              <div class="mc"><div class="lbl">Total Não Conformidades</div><div class="val dn" id="corp-nc-total">0</div></div>
+              <div class="mc"><div class="lbl">Item Mais Crítico</div><div class="val" style="font-size:14px" id="corp-nc-critico">—</div></div>
+              <div class="mc"><div class="lbl">Média Conformidade</div><div class="val" id="corp-nc-media">—</div></div>
+            </div>
+            <div class="card">
+              <div class="card-hdr"><div class="card-title">Top 10 Itens Mais Falhos</div></div>
+              <table><thead><tr><th>Item</th><th>Falhas</th><th>% de Falha</th><th>Gravidade</th></tr></thead>
+              <tbody id="corp-naoconf-tbody"><tr class="erow"><td colspan="4">Nenhum dado</td></tr></tbody></table>
+            </div>
+          </div>
+
+          <!-- SUB: COMPARATIVO LOJAS -->
+          <div id="rel-corp-comparativo" style="display:none">
+            <div class="g2" style="margin-bottom:14px">
+              <div class="card"><div class="card-hdr"><div class="card-title">Radar — Métricas por Loja</div></div><div style="position:relative;height:350px"><canvas id="chart-radar"></canvas></div></div>
+              <div class="card">
+                <div class="card-hdr"><div class="card-title">Comparativo</div></div>
+                <table><thead><tr><th>Loja</th><th>CL Geral</th><th>Prevenção</th><th>Operacional</th><th>Adesão</th><th>Score</th></tr></thead>
+                <tbody id="corp-comparativo-tbody"><tr class="erow"><td colspan="6">Nenhum dado</td></tr></tbody></table>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUB: PONTUALIDADE -->
+          <div id="rel-corp-pontualidade" style="display:none">
+            <div class="card" style="margin-bottom:14px">
+              <div class="card-hdr"><div class="card-title">Envios por Faixa de Horário</div></div>
+              <div style="position:relative;height:300px"><canvas id="chart-pontualidade"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-hdr"><div class="card-title">Horário Comercial vs Fora</div></div>
+              <table><thead><tr><th>Loja</th><th>Comercial (06-18h)</th><th>Fora do Horário</th><th>% Comercial</th></tr></thead>
+              <tbody id="corp-pontualidade-tbody"><tr class="erow"><td colspan="4">Nenhum dado</td></tr></tbody></table>
+            </div>
+          </div>
+
+          <!-- SUB: PERDAS × CL -->
+          <div id="rel-corp-perdasxcl" style="display:none">
+            <div class="g3" style="margin-bottom:16px">
+              <div class="mc"><div class="lbl">Correlação Crítica</div><div class="val dn" id="corp-px-correlacao">—</div></div>
+              <div class="mc"><div class="lbl">Dias Analisados</div><div class="val" id="corp-px-dias">0</div></div>
+              <div class="mc"><div class="lbl">Dias CL &lt; 80%</div><div class="val" style="color:var(--am)" id="corp-px-baixo">0</div></div>
+            </div>
+            <div class="card" style="margin-bottom:14px" id="corp-px-loading" style="display:none">
+              <div style="padding:30px;text-align:center;color:var(--t3)">Carregando dados de perdas...</div>
+            </div>
+            <div class="card" style="margin-bottom:14px">
+              <div class="card-hdr"><div class="card-title">Perdas vs Checklist Prevenção</div></div>
+              <div style="position:relative;height:350px"><canvas id="chart-perdasxcl"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-hdr"><div class="card-title">Detalhamento Diário</div></div>
+              <table><thead><tr><th>Data</th><th>Perdas R$</th><th>CL Prevenção %</th><th>Status</th></tr></thead>
+              <tbody id="corp-perdasxcl-tbody"><tr class="erow"><td colspan="4">Nenhum dado</td></tr></tbody></table>
+            </div>
+          </div>
+
+        </div><!-- /rel-tab-corporativo -->
+
       </div><!-- /panel-relatorios -->
             <div id="panel-usuarios" class="panel">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
@@ -458,7 +592,7 @@
           <div class="tab" onclick="filtrarUsers('prevencao',this)">Prevenção</div>
         </div>
         <div class="card"><div class="card-hdr"><div class="card-title">Usuários</div></div>
-          <table><thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Setor</th><th>Cargo</th><th>Status</th><th>Ações</th></tr></thead>
+          <table><thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Loja</th><th>Setor</th><th>Cargo</th><th>Status</th><th>Ações</th></tr></thead>
           <tbody id="u-tbody"></tbody></table>
         </div>
         <div class="g3" style="margin-top:14px">
@@ -482,7 +616,7 @@
       <div class="fg"><label>Perfil</label><select id="u-perfil"><option value="gerencia">👔 Gerência de Loja</option><option value="operator">🛒 Operador</option><option value="prevencao">🔍 Aux. Prevenção</option></select></div>
       <div class="fg"><label>Setor</label><select id="u-setor"><option>Gerência</option><option>Mercearia</option><option>Perecíveis</option><option>Frios</option><option>Hortifruti</option><option>Açougue</option><option>Padaria</option><option>Bebidas</option><option>Caixa</option><option>Prevenção</option><option>Geral</option></select></div>
     </div>
-    <div class="frow c1"><div class="fg"><label>Cargo / Observação</label><input id="u-cargo" type="text" placeholder="Ex: Encarregado de Mercearia"/></div></div>
+    <div class="frow c2"><div class="fg"><label>Cargo / Observação</label><input id="u-cargo" type="text" placeholder="Ex: Encarregado de Mercearia"/></div><div class="fg"><label>Loja</label><input id="u-loja" type="text" placeholder="Ex: Loja Centro, Filial Norte"/></div></div>
     <div class="modal-err" id="mu-err"></div>
     <div class="btn-row"><button class="btn btn-p" onclick="salvarUser()">Salvar</button><button class="btn btn-s" onclick="fecharModalUser()">Cancelar</button></div>
   </div>

@@ -20,6 +20,13 @@ var UKEY = 'eco_users';
 var INV_KEY = 'eco_inventario';
 var PERD_KEY = 'eco_perdas';
 
+function calcPontos(pct) {
+  if (pct === 100) return 10;
+  if (pct >= 80)  return 7;
+  if (pct >= 60)  return 4;
+  return 1;
+}
+
 function getLocalDate() {
   var d = new Date();
   return d.getFullYear() + '-'
@@ -1797,7 +1804,7 @@ var editingUserId=null, userFilter='todos';
 function abrirModalUser() {
   editingUserId=null;
   document.getElementById('mu-title').textContent='Novo Usuário';
-  ['u-nome','u-email','u-senha','u-senha2','u-cargo'].forEach(function(id){document.getElementById(id).value='';});
+  ['u-nome','u-email','u-senha','u-senha2','u-cargo','u-loja'].forEach(function(id){document.getElementById(id).value='';});
   document.getElementById('u-perfil').value='operator';
   document.getElementById('u-setor').value='Geral';
   document.getElementById('mu-err').style.display='none';
@@ -1821,6 +1828,7 @@ function editarUser(id) {
   document.getElementById('u-perfil').value=u.perfil;
   document.getElementById('u-setor').value=u.setor||'Geral';
   document.getElementById('u-cargo').value=u.cargo||'';
+  document.getElementById('u-loja').value=u.loja||'';
   document.getElementById('mu-err').style.display='none';
   document.getElementById('modal-user').style.display='flex';
 }
@@ -1833,6 +1841,7 @@ function salvarUser() {
   var perfil=document.getElementById('u-perfil').value;
   var setor=document.getElementById('u-setor').value;
   var cargo=document.getElementById('u-cargo').value.trim();
+  var loja=document.getElementById('u-loja').value.trim();
   var err=document.getElementById('mu-err');
   if (!nome){err.textContent='Informe o nome.';err.style.display='block';return;}
   if (!email||email.indexOf('@')<0){err.textContent='E-mail inválido.';err.style.display='block';return;}
@@ -1842,9 +1851,9 @@ function salvarUser() {
   var dup=users.find(function(u){return u.email.toLowerCase()===email && u.id!==editingUserId;});
   if (dup){err.textContent='E-mail já cadastrado.';err.style.display='block';return;}
   if (editingUserId) {
-    users=users.map(function(u){return u.id===editingUserId?Object.assign({},u,{nome,email,senha,perfil,setor,cargo}):u;});
+    users=users.map(function(u){return u.id===editingUserId?Object.assign({},u,{nome,email,senha,perfil,setor,cargo,loja}):u;});
   } else {
-    users.push({id:genId(),nome,email,senha,perfil,setor,cargo,ativo:true});
+    users.push({id:genId(),nome,email,senha,perfil,setor,cargo,loja,ativo:true});
   }
   saveUsers(users);
   fecharModalUser();
@@ -1876,7 +1885,7 @@ function renderUsers() {
   var users=getUsers();
   var filtered=userFilter==='todos'?users:users.filter(function(u){return u.perfil===userFilter;});
   var tbody=document.getElementById('u-tbody');
-  if (!filtered.length){tbody.innerHTML='<tr class="erow"><td colspan="7">Nenhum usuário neste perfil</td></tr>';return;}
+  if (!filtered.length){tbody.innerHTML='<tr class="erow"><td colspan="8">Nenhum usuário neste perfil</td></tr>';return;}
   tbody.innerHTML=filtered.map(function(u){
     var actions = u.id==='admin'
       ? '<span style="font-size:11px;color:var(--t3)">protegido</span>'
@@ -1885,6 +1894,7 @@ function renderUsers() {
         +'<button class="btn btn-d btn-sm" onclick="excluirUser(\''+u.id+'\')">Excluir</button>';
     return '<tr><td><strong>'+u.nome+'</strong></td><td>'+u.email+'</td>'
       +'<td><span class="st '+(UPCLS[u.perfil]||'st-ok')+'">'+(UPLABEL[u.perfil]||u.perfil)+'</span></td>'
+      +'<td>'+(u.loja||'-')+'</td>'
       +'<td>'+(u.setor||'-')+'</td>'
       +'<td style="font-size:12px;color:var(--t3)">'+(u.cargo||'-')+'</td>'
       +'<td><span class="st '+(u.ativo?'st-ok':'st-warn')+'">'+(u.ativo?'Ativo':'Inativo')+'</span></td>'
@@ -2016,7 +2026,7 @@ function switchRelClTab(sub, btn) {
 }
 
 function switchRelTab(tab, btn) {
-  ['checklist','inventario','perdas'].forEach(function(t){
+  ['checklist','inventario','perdas','corporativo'].forEach(function(t){
     var el = document.getElementById('rel-tab-'+t);
     if (el) el.style.display = t===tab ? 'block' : 'none';
   });
@@ -2028,6 +2038,7 @@ function switchRelTab(tab, btn) {
   }
   if (tab==='inventario') renderRelInventario();
   if (tab==='perdas') renderRelPerdas();
+  if (tab==='corporativo') renderRelCorporativoTab();
 }
 
 var resumoDiaFiltro = 'hoje';
@@ -2401,54 +2412,110 @@ function renderRelNaoConformidade() {
   }).join('') : '<tr class="erow"><td colspan="5">Nenhuma reincidência</td></tr>';
 }
 
+function switchRankView(view, btn) {
+  document.getElementById('rank-view-op').style.display    = view === 'operadores' ? 'block' : 'none';
+  document.getElementById('rank-view-lojas').style.display = view === 'lojas'      ? 'block' : 'none';
+  document.querySelectorAll('#rel-cl-ranking .tabs .tab').forEach(function(t){ t.classList.remove('on'); });
+  if (btn) btn.classList.add('on');
+}
+
+function buildPodio(elId, rankList) {
+  var podio   = document.getElementById(elId);
+  if (!podio) return;
+  var medals  = [{pos:1,icon:'🥇',h:120,bg:'#FFD700'},{pos:2,icon:'🥈',h:90,bg:'#C0C0C0'},{pos:3,icon:'🥉',h:70,bg:'#CD7F32'}];
+  var order   = [1,0,2];
+  podio.innerHTML = order.map(function(i){
+    var m=medals[i]; var op=rankList[i];
+    if (!op) return '<div style="width:120px"></div>';
+    return '<div style="text-align:center;width:130px">'
+      +'<div style="font-size:28px;margin-bottom:4px">'+m.icon+'</div>'
+      +'<div style="font-size:13px;font-weight:700;margin-bottom:4px">'+op.nome+'</div>'
+      +'<div style="font-size:11px;color:var(--t3);margin-bottom:2px">'+op.pontos+' pts</div>'
+      +'<div style="font-size:11px;color:var(--t3);margin-bottom:8px">'+op.media+'% média</div>'
+      +'<div style="height:'+m.h+'px;background:'+m.bg+';border-radius:8px 8px 0 0;display:flex;align-items:flex-start;justify-content:center;padding-top:8px;font-size:20px;font-weight:800;color:#fff">'+m.pos+'</div>'
+      +'</div>';
+  }).join('');
+}
+
 function renderRelRanking() {
   var resultados = getResultados();
   var mesSel = document.getElementById('rank-mes') ? document.getElementById('rank-mes').value : '';
   var anoSel = document.getElementById('rank-ano') ? parseInt(document.getElementById('rank-ano').value) : new Date().getFullYear();
 
   var res = resultados.filter(function(r){
-    if(!r.dataHora) return false;
+    if (!r.dataHora) return false;
     var p=r.dataHora.split(' ')[0].split('/');
-    if(p.length<3) return true;
+    if (p.length<3) return true;
     var d=new Date(p[2]+'-'+p[1]+'-'+p[0]);
-    if(anoSel && d.getFullYear()!==anoSel) return false;
-    if(mesSel!=='' && d.getMonth()!==parseInt(mesSel)) return false;
+    if (anoSel && d.getFullYear()!==anoSel) return false;
+    if (mesSel!=='' && d.getMonth()!==parseInt(mesSel)) return false;
     return true;
   });
 
-  var opMap={};
+  var MEDALS = ['🥇','🥈','🥉'];
+
+  // ── RANKING DE OPERADORES ──────────────────────────────────
+  var opMap = {};
   res.forEach(function(r){
-    if(!opMap[r.operador])opMap[r.operador]={env:0,comp:0,soma:0};
-    opMap[r.operador].env++;if(r.pct===100)opMap[r.operador].comp++;opMap[r.operador].soma+=r.pct;
+    if (!opMap[r.operador]) opMap[r.operador]={env:0,comp:0,soma:0,pontos:0};
+    opMap[r.operador].env++;
+    if (r.pct===100) opMap[r.operador].comp++;
+    opMap[r.operador].soma   += r.pct;
+    opMap[r.operador].pontos += calcPontos(r.pct);
   });
-  var rankList=Object.keys(opMap).map(function(n){
-    var o=opMap[n];return{nome:n,env:o.env,comp:o.comp,media:Math.round(o.soma/o.env)};
-  }).sort(function(a,b){return b.media-a.media||b.comp-a.comp;});
+  var opList = Object.keys(opMap).map(function(n){
+    var o=opMap[n];
+    return {nome:n, env:o.env, comp:o.comp, pontos:o.pontos, media:Math.round(o.soma/o.env)};
+  }).sort(function(a,b){ return b.pontos-a.pontos || b.media-a.media; });
 
-  // Pódio
-  var podio=document.getElementById('rank-podio');
-  var medals=[{pos:1,icon:'🥇',h:120,bg:'#FFD700'},{pos:2,icon:'🥈',h:90,bg:'#C0C0C0'},{pos:3,icon:'🥉',h:70,bg:'#CD7F32'}];
-  var podioOrder=[1,0,2]; // 2nd, 1st, 3rd
-  podio.innerHTML = podioOrder.map(function(i){
-    var m=medals[i];var op=rankList[i];
-    if(!op) return '<div style="width:120px"></div>';
-    return '<div style="text-align:center;width:130px">'
-      +'<div style="font-size:28px;margin-bottom:4px">'+m.icon+'</div>'
-      +'<div style="font-size:13px;font-weight:700;margin-bottom:4px">'+op.nome+'</div>'
-      +'<div style="font-size:12px;color:var(--t3);margin-bottom:8px">'+op.media+'% média</div>'
-      +'<div style="height:'+m.h+'px;background:'+m.bg+';border-radius:8px 8px 0 0;display:flex;align-items:flex-start;justify-content:center;padding-top:8px;font-size:20px;font-weight:800;color:#fff">'+m.pos+'</div>'
-      +'</div>';
-  }).join('');
+  buildPodio('rank-podio', opList);
 
-  // Tabela
-  var tbody=document.getElementById('rank-tbody');
-  var MEDALS=['🥇','🥈','🥉'];
-  tbody.innerHTML = rankList.length ? rankList.map(function(o,i){
-    var st=o.media===100?'st-ok':o.media>=70?'st-warn':'st-err';
-    return '<tr><td>'+(MEDALS[i]||i+1)+'</td><td><strong>'+o.nome+'</strong></td>'
-      +'<td>'+o.env+'</td><td><span class="st '+(o.comp===o.env?'st-ok':'st-warn')+'">'+o.comp+'/'+o.env+'</span></td>'
-      +'<td><span class="st '+st+'">'+o.media+'%</span></td></tr>';
-  }).join('') : '<tr class="erow"><td colspan="5">Nenhum dado</td></tr>';
+  var tbody = document.getElementById('rank-tbody');
+  tbody.innerHTML = opList.length ? opList.map(function(o,i){
+    var st = o.media===100?'st-ok':o.media>=70?'st-warn':'st-err';
+    return '<tr>'
+      +'<td>'+(MEDALS[i]||i+1)+'</td>'
+      +'<td><strong>'+o.nome+'</strong></td>'
+      +'<td><strong style="color:var(--g)">'+o.pontos+'</strong></td>'
+      +'<td>'+o.env+'</td>'
+      +'<td><span class="st '+(o.comp===o.env?'st-ok':'st-warn')+'">'+o.comp+'/'+o.env+'</span></td>'
+      +'<td><span class="st '+st+'">'+o.media+'%</span></td>'
+      +'</tr>';
+  }).join('') : '<tr class="erow"><td colspan="6">Nenhum dado</td></tr>';
+
+  // ── RANKING DE LOJAS ──────────────────────────────────────
+  var users    = getUsers();
+  var lojaMap  = {};
+  res.forEach(function(r){
+    // Busca loja do operador no cadastro
+    var u = users.find(function(u){ return u.nome === r.operador; });
+    var loja = (u && u.loja && u.loja.trim()) ? u.loja.trim() : 'Sem loja';
+    if (!lojaMap[loja]) lojaMap[loja]={env:0,comp:0,soma:0,pontos:0};
+    lojaMap[loja].env++;
+    if (r.pct===100) lojaMap[loja].comp++;
+    lojaMap[loja].soma   += r.pct;
+    lojaMap[loja].pontos += calcPontos(r.pct);
+  });
+  var lojaList = Object.keys(lojaMap).map(function(n){
+    var o=lojaMap[n];
+    return {nome:n, env:o.env, comp:o.comp, pontos:o.pontos, media:Math.round(o.soma/o.env)};
+  }).sort(function(a,b){ return b.pontos-a.pontos || b.media-a.media; });
+
+  buildPodio('rank-lojas-podio', lojaList);
+
+  var lojasTbody = document.getElementById('rank-lojas-tbody');
+  lojasTbody.innerHTML = lojaList.length ? lojaList.map(function(o,i){
+    var st = o.media===100?'st-ok':o.media>=70?'st-warn':'st-err';
+    var rowStyle = i===0 ? ' style="background:#fffbe6"' : '';
+    return '<tr'+rowStyle+'>'
+      +'<td>'+(MEDALS[i]||i+1)+'</td>'
+      +'<td><strong>'+o.nome+'</strong></td>'
+      +'<td><strong style="color:var(--g)">'+o.pontos+'</strong></td>'
+      +'<td>'+o.env+'</td>'
+      +'<td><span class="st '+(o.comp===o.env?'st-ok':'st-warn')+'">'+o.comp+'/'+o.env+'</span></td>'
+      +'<td><span class="st '+st+'">'+o.media+'%</span></td>'
+      +'</tr>';
+  }).join('') : '<tr class="erow"><td colspan="6">Nenhum dado — cadastre a loja nos usuários</td></tr>';
 }
 
 // ── Exportar PDF ──
@@ -2695,6 +2762,481 @@ function showAlert(id) {
   if (!el) return;
   el.style.display='flex';
   setTimeout(function(){el.style.display='none';},3500);
+}
+
+// ============================================================
+// RELATÓRIOS CORPORATIVOS
+// ============================================================
+
+// Sub-tab ativo (default: adesao)
+var _corpSubAtivo = 'adesao';
+
+function switchRelCorpTab(sub, btn) {
+  var subs = ['adesao','tendencia','naoconf','comparativo','pontualidade','perdasxcl'];
+  subs.forEach(function(s){
+    var el = document.getElementById('rel-corp-'+s);
+    if (el) el.style.display = s===sub ? 'block' : 'none';
+  });
+  document.querySelectorAll('#rel-corp-subtabs .tab').forEach(function(t){t.classList.remove('on');});
+  if (btn) btn.classList.add('on');
+  _corpSubAtivo = sub;
+  renderRelCorporativoTab();
+}
+
+function renderRelCorporativoTab() {
+  if (_corpSubAtivo==='adesao')       renderAdesao();
+  else if (_corpSubAtivo==='tendencia')   renderTendencia();
+  else if (_corpSubAtivo==='naoconf')     renderNaoConformRecorrente();
+  else if (_corpSubAtivo==='comparativo') renderComparativoLojas();
+  else if (_corpSubAtivo==='pontualidade')renderPontualidade();
+  else if (_corpSubAtivo==='perdasxcl')  renderPerdasChecklist();
+}
+
+function _corpGetPeriodDays() {
+  var mes = document.getElementById('corp-mes') ? document.getElementById('corp-mes').value : '';
+  var ano = parseInt(document.getElementById('corp-ano') ? document.getElementById('corp-ano').value : new Date().getFullYear());
+  var days = 0;
+  if (mes !== '') {
+    var m = parseInt(mes);
+    days = new Date(ano, m+1, 0).getDate();
+  } else {
+    days = 365;
+  }
+  return days || 30;
+}
+
+function _corpFilterRes() {
+  var res = getResultados();
+  var mes = document.getElementById('corp-mes') ? document.getElementById('corp-mes').value : '';
+  var ano = parseInt(document.getElementById('corp-ano') ? document.getElementById('corp-ano').value : new Date().getFullYear());
+  if (mes === '' && !ano) return res;
+  return res.filter(function(r){
+    if (!r.dataHora) return false;
+    var parts = r.dataHora.split(' ')[0].split('/');
+    var rDia=parseInt(parts[0]),rMes=parseInt(parts[1])-1,rAno=parseInt(parts[2]);
+    if (ano && rAno !== ano) return false;
+    if (mes !== '' && rMes !== parseInt(mes)) return false;
+    return true;
+  });
+}
+
+function _corpLojaDeUsuario(operador) {
+  var users = getUsers();
+  var u = users.find(function(u){ return u.nome === operador; });
+  return (u && u.loja && u.loja.trim()) ? u.loja.trim() : 'Sem loja';
+}
+
+// ── Relatório 1: Adesão ──────────────────────────────────
+function renderAdesao() {
+  var res = _corpFilterRes();
+  var totalDias = _corpGetPeriodDays();
+  var lojaMap = {};
+  res.forEach(function(r){
+    var loja = _corpLojaDeUsuario(r.operador);
+    if (!lojaMap[loja]) lojaMap[loja]={dias:new Set(),total:0,comp:0};
+    if (r.dataHora) {
+      var dia = r.dataHora.split(' ')[0];
+      lojaMap[loja].dias.add(dia);
+    }
+    lojaMap[loja].total++;
+    if (r.pct===100) lojaMap[loja].comp++;
+  });
+
+  var lojas = Object.keys(lojaMap).map(function(n){
+    var o=lojaMap[n];
+    var diasEnvio = o.dias.size;
+    var adesao = Math.min(100, Math.round(diasEnvio/totalDias*100));
+    return {nome:n, diasEnvio:diasEnvio, total:o.total, comp:o.comp, adesao:adesao};
+  }).sort(function(a,b){return b.adesao-a.adesao;});
+
+  var totalLojas = lojas.length;
+  var mediaAd = totalLojas ? Math.round(lojas.reduce(function(s,l){return s+l.adesao;},0)/totalLojas) : 0;
+  var melhor = lojas.length ? lojas[0].nome : '—';
+
+  var adLojasEl = document.getElementById('corp-ad-lojas');
+  var adMediaEl = document.getElementById('corp-ad-media');
+  var adMelhorEl = document.getElementById('corp-ad-melhor');
+  if (adLojasEl) adLojasEl.textContent = totalLojas;
+  if (adMediaEl) adMediaEl.textContent = mediaAd+'%';
+  if (adMelhorEl) adMelhorEl.textContent = melhor;
+
+  var tbody = document.getElementById('corp-adesao-tbody');
+  if (!tbody) return;
+  if (!lojas.length) { tbody.innerHTML='<tr class="erow"><td colspan="5">Nenhum dado para o período</td></tr>'; return; }
+  tbody.innerHTML = lojas.map(function(l){
+    var cor = l.adesao>=80?'var(--g)':l.adesao>=50?'var(--am)':'var(--r)';
+    var barra = '<div style="background:var(--gray2);border-radius:4px;height:8px;overflow:hidden"><div style="width:'+l.adesao+'%;height:100%;background:'+cor+';border-radius:4px"></div></div>';
+    return '<tr><td><strong>'+l.nome+'</strong></td>'
+      +'<td>'+l.diasEnvio+'</td>'
+      +'<td>'+l.total+'</td>'
+      +'<td><span class="st '+(l.comp===l.total&&l.total>0?'st-ok':'st-warn')+'">'+l.comp+'</span></td>'
+      +'<td>'+barra+'<small style="color:'+cor+'">'+l.adesao+'%</small></td></tr>';
+  }).join('');
+}
+
+// ── Relatório 2: Tendência Semanal ───────────────────────
+function renderTendencia() {
+  var res = getResultados();
+  function isoWeekStart(d) {
+    var dt = new Date(d);
+    var day = dt.getDay();
+    var diff = (day===0?-6:1-day);
+    dt.setDate(dt.getDate()+diff);
+    return dt.toISOString().slice(0,10);
+  }
+
+  // Últimas 8 semanas
+  var weekMap = {};
+  res.forEach(function(r){
+    if (!r.dataHora) return;
+    var parts=r.dataHora.split(' ')[0].split('/');
+    var dt=new Date(parseInt(parts[2]),parseInt(parts[1])-1,parseInt(parts[0]));
+    var wk=isoWeekStart(dt);
+    if (!weekMap[wk]) weekMap[wk]={soma:0,cnt:0};
+    weekMap[wk].soma+=r.pct;
+    weekMap[wk].cnt++;
+  });
+
+  var weeks = Object.keys(weekMap).sort().slice(-8);
+  var labels = weeks.map(function(w){ return w.slice(5); });
+  var data   = weeks.map(function(w){ var o=weekMap[w]; return Math.round(o.soma/o.cnt); });
+
+  if (S.relCharts.tendencia) { S.relCharts.tendencia.destroy(); S.relCharts.tendencia=null; }
+  var ctx = document.getElementById('chart-tendencia');
+  if (ctx) {
+    S.relCharts.tendencia = new Chart(ctx, {
+      type:'line',
+      data:{labels:labels,datasets:[{label:'Média %',data:data,borderColor:'#2d9e62',backgroundColor:'rgba(45,158,98,.15)',tension:.35,fill:true,pointRadius:5,pointBackgroundColor:'#2d9e62'}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true}},scales:{y:{min:0,max:100,ticks:{callback:function(v){return v+'%';}}}}}
+    });
+  }
+
+  var tbody = document.getElementById('corp-tendencia-tbody');
+  if (!tbody) return;
+  if (!weeks.length) { tbody.innerHTML='<tr class="erow"><td colspan="4">Nenhum dado</td></tr>'; return; }
+  tbody.innerHTML = weeks.map(function(w,i){
+    var o=weekMap[w];
+    var med=Math.round(o.soma/o.cnt);
+    var prev = i>0 ? Math.round(weekMap[weeks[i-1]].soma/weekMap[weeks[i-1]].cnt) : null;
+    var variacao = prev===null ? '—' : (med>prev?'<span style="color:var(--g)">↑ +'+(med-prev)+'%</span>':med<prev?'<span style="color:var(--r)">↓ '+(med-prev)+'%</span>':'<span style="color:var(--t3)">→ 0%</span>');
+    return '<tr><td>'+w+'</td><td>'+o.cnt+'</td><td><strong>'+med+'%</strong></td><td>'+variacao+'</td></tr>';
+  }).join('');
+}
+
+// ── Relatório 3: Não Conformidades Recorrentes ────────────
+function renderNaoConformRecorrente() {
+  var res = _corpFilterRes();
+  var itemMap = {};
+  res.forEach(function(r){
+    if (!r.itens) return;
+    r.itens.forEach(function(it){
+      var txt = it.texto||'(sem texto)';
+      if (!itemMap[txt]) itemMap[txt]={falhas:0,total:0};
+      itemMap[txt].total++;
+      if (it.feito===false) itemMap[txt].falhas++;
+    });
+  });
+
+  var items = Object.keys(itemMap).map(function(txt){
+    var o=itemMap[txt];
+    return {texto:txt, falhas:o.falhas, total:o.total, pct:o.total?Math.round(o.falhas/o.total*100):0};
+  }).filter(function(i){return i.falhas>0;}).sort(function(a,b){return b.falhas-a.falhas;}).slice(0,10);
+
+  var totalNC = items.reduce(function(s,i){return s+i.falhas;},0);
+  var critico = items.length ? items[0].texto : '—';
+  var totalItens = Object.keys(itemMap).reduce(function(s,k){return s+itemMap[k].total;},0);
+  var totalFeitos = Object.keys(itemMap).reduce(function(s,k){return s+(itemMap[k].total-itemMap[k].falhas);},0);
+  var mediaConf = totalItens ? Math.round(totalFeitos/totalItens*100) : 100;
+
+  var ncTotalEl=document.getElementById('corp-nc-total');
+  var ncCriticoEl=document.getElementById('corp-nc-critico');
+  var ncMediaEl=document.getElementById('corp-nc-media');
+  if (ncTotalEl) ncTotalEl.textContent=totalNC;
+  if (ncCriticoEl) ncCriticoEl.textContent=critico.length>40?critico.slice(0,37)+'...':critico;
+  if (ncMediaEl) ncMediaEl.textContent=mediaConf+'%';
+
+  var tbody = document.getElementById('corp-naoconf-tbody');
+  if (!tbody) return;
+  if (!items.length) { tbody.innerHTML='<tr class="erow"><td colspan="4">Nenhuma não conformidade encontrada</td></tr>'; return; }
+  tbody.innerHTML = items.map(function(it){
+    var grave = it.pct>50?'<span class="st st-err">Crítico</span>':it.pct>25?'<span class="st st-warn">Atenção</span>':'<span class="st st-ok">Leve</span>';
+    var cor = it.pct>50?'var(--r)':'var(--t)';
+    return '<tr><td style="max-width:250px;word-break:break-word">'+it.texto+'</td>'
+      +'<td style="color:'+cor+'"><strong>'+it.falhas+'</strong></td>'
+      +'<td>'+it.pct+'%</td>'
+      +'<td>'+grave+'</td></tr>';
+  }).join('');
+}
+
+// ── Relatório 4: Comparativo de Lojas ────────────────────
+function renderComparativoLojas() {
+  var res = _corpFilterRes();
+  var lojaMap = {};
+  res.forEach(function(r){
+    var loja = _corpLojaDeUsuario(r.operador);
+    if (!lojaMap[loja]) lojaMap[loja]={geral:[],prev:[],oper:[],dias:new Set()};
+    lojaMap[loja].geral.push(r.pct);
+    if (r.perfil==='prevencao') lojaMap[loja].prev.push(r.pct);
+    if (r.perfil==='operator') lojaMap[loja].oper.push(r.pct);
+    if (r.dataHora) lojaMap[loja].dias.add(r.dataHora.split(' ')[0]);
+  });
+
+  var COLORS = ['#2d9e62','#1a5276','#d68910','#c0392b','#8e44ad'];
+  var lojas = Object.keys(lojaMap);
+  function avg(arr){ return arr.length?Math.round(arr.reduce(function(s,v){return s+v;},0)/arr.length):0; }
+
+  var datasets = lojas.slice(0,5).map(function(nome,i){
+    var o=lojaMap[nome];
+    var cl=avg(o.geral), prev=avg(o.prev), oper=avg(o.oper), ades=Math.min(100,Math.round(o.dias.size/30*100));
+    return {label:nome, data:[cl,prev,oper,ades], borderColor:COLORS[i], backgroundColor:COLORS[i]+'33', pointBackgroundColor:COLORS[i]};
+  });
+
+  if (S.relCharts.radar) { S.relCharts.radar.destroy(); S.relCharts.radar=null; }
+  var ctx = document.getElementById('chart-radar');
+  if (ctx) {
+    S.relCharts.radar = new Chart(ctx, {
+      type:'radar',
+      data:{labels:['CL Geral','Prevenção','Operacional','Adesão'],datasets:datasets},
+      options:{responsive:true,maintainAspectRatio:false,scales:{r:{min:0,max:100,ticks:{stepSize:20,callback:function(v){return v+'%';}}}}}
+    });
+  }
+
+  var tbody = document.getElementById('corp-comparativo-tbody');
+  if (!tbody) return;
+  if (!lojas.length) { tbody.innerHTML='<tr class="erow"><td colspan="6">Nenhum dado</td></tr>'; return; }
+  tbody.innerHTML = lojas.map(function(nome){
+    var o=lojaMap[nome];
+    var cl=avg(o.geral),prev=avg(o.prev),oper=avg(o.oper),ades=Math.min(100,Math.round(o.dias.size/30*100));
+    var score=Math.round((cl+prev+oper+ades)/4);
+    var st=score>=80?'st-ok':score>=60?'st-warn':'st-err';
+    return '<tr><td><strong>'+nome+'</strong></td>'
+      +'<td>'+cl+'%</td><td>'+prev+'%</td><td>'+oper+'%</td><td>'+ades+'%</td>'
+      +'<td><span class="st '+st+'"><strong>'+score+'%</strong></span></td></tr>';
+  }).join('');
+}
+
+// ── Relatório 5: Pontualidade ─────────────────────────────
+function renderPontualidade() {
+  var res = _corpFilterRes();
+  var buckets = ['06-09h','09-12h','12-15h','15-18h','18-21h','21h+'];
+  function getBucket(hora){
+    if (hora<9) return '06-09h';
+    if (hora<12) return '09-12h';
+    if (hora<15) return '12-15h';
+    if (hora<18) return '15-18h';
+    if (hora<21) return '18-21h';
+    return '21h+';
+  }
+
+  var lojaMap = {};
+  res.forEach(function(r){
+    var loja = _corpLojaDeUsuario(r.operador);
+    if (!lojaMap[loja]) {
+      lojaMap[loja]={};
+      buckets.forEach(function(b){lojaMap[loja][b]=0;});
+    }
+    if (r.dataHora) {
+      var timePart = r.dataHora.split(' ')[1]||'00:00';
+      var hora = parseInt(timePart.split(':')[0]);
+      var bkt = getBucket(hora);
+      lojaMap[loja][bkt]++;
+    }
+  });
+
+  var topLojas = Object.keys(lojaMap).slice(0,3);
+  var COLORS = ['#2d9e62','#1a5276','#d68910'];
+  var datasets = topLojas.map(function(loja,i){
+    return {label:loja, data:buckets.map(function(b){return lojaMap[loja][b];}), backgroundColor:COLORS[i]+'cc', borderRadius:4};
+  });
+
+  if (S.relCharts.pontualidade) { S.relCharts.pontualidade.destroy(); S.relCharts.pontualidade=null; }
+  var ctx = document.getElementById('chart-pontualidade');
+  if (ctx) {
+    S.relCharts.pontualidade = new Chart(ctx, {
+      type:'bar',
+      data:{labels:buckets,datasets:datasets},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}
+    });
+  }
+
+  var tbody = document.getElementById('corp-pontualidade-tbody');
+  if (!tbody) return;
+  var lojas = Object.keys(lojaMap);
+  if (!lojas.length) { tbody.innerHTML='<tr class="erow"><td colspan="4">Nenhum dado</td></tr>'; return; }
+  tbody.innerHTML = lojas.map(function(nome){
+    var o=lojaMap[nome];
+    var comercial=['06-09h','09-12h','12-15h','15-18h'].reduce(function(s,b){return s+o[b];},0);
+    var fora=['18-21h','21h+'].reduce(function(s,b){return s+o[b];},0);
+    var total=comercial+fora;
+    var pct=total?Math.round(comercial/total*100):0;
+    var st=pct>=80?'st-ok':pct>=60?'st-warn':'st-err';
+    return '<tr><td><strong>'+nome+'</strong></td>'
+      +'<td>'+comercial+'</td><td>'+fora+'</td>'
+      +'<td><span class="st '+st+'">'+pct+'%</span></td></tr>';
+  }).join('');
+}
+
+// ── Relatório 6: Exportar PDF Consolidado ────────────────
+function exportarPDFConsolidado() {
+  showToast('Preparando PDF consolidado...');
+  try { renderAdesao(); } catch(e){}
+  try { renderTendencia(); } catch(e){}
+  try { renderNaoConformRecorrente(); } catch(e){}
+  try { renderComparativoLojas(); } catch(e){}
+  try { renderPontualidade(); } catch(e){}
+
+  var logoEl = document.querySelector('.sb-logo img');
+  var logoSrc = logoEl ? logoEl.src : '';
+  var hoje = new Date().toLocaleString('pt-BR');
+  var mesSel = document.getElementById('corp-mes');
+  var anoSel = document.getElementById('corp-ano');
+  var periodoTxt = (mesSel&&mesSel.options[mesSel.selectedIndex]?mesSel.options[mesSel.selectedIndex].text:'Todos os meses')+' / '+(anoSel?anoSel.value:'');
+
+  var secoes = ['rel-corp-adesao','rel-corp-naoconf','rel-corp-comparativo','rel-corp-pontualidade'];
+  var conteudo = secoes.map(function(id){
+    var el=document.getElementById(id);
+    return el ? '<div style="page-break-inside:avoid;margin-bottom:30px">'+el.innerHTML+'</div>' : '';
+  }).join('');
+
+  var html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/><title>Relatório Corporativo Consolidado</title>'
+    +'<style>*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}'
+    +'body{padding:30px;color:#111;font-size:12px}'
+    +'.header{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #FFC600;padding-bottom:16px;margin-bottom:24px}'
+    +'.header img{height:60px;object-fit:contain}'
+    +'.header-info{text-align:right}'
+    +'.header-info h1{font-size:18px;font-weight:700}'
+    +'.mc{background:#f8f9fa;border-radius:8px;padding:12px;margin-bottom:8px;display:inline-block;min-width:160px;margin-right:8px}'
+    +'.lbl{font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:#888;margin-bottom:4px}'
+    +'.val{font-size:20px;font-weight:700}'
+    +'.g3,.g4{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}'
+    +'table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:11px}'
+    +'th{background:#FFC600;padding:8px;text-align:left;font-size:10px;text-transform:uppercase}'
+    +'td{padding:7px 8px;border-bottom:1px solid #eee}'
+    +'.card{border:1px solid #eee;border-radius:8px;padding:14px;margin-bottom:16px}'
+    +'.card-hdr{margin-bottom:10px;font-weight:700}'
+    +'canvas,button,select,input{display:none}'
+    +'@media print{.no-print{display:none}}'
+    +'</style></head><body>'
+    +'<div class="header">'
+    +(logoSrc?'<img src="'+logoSrc+'" alt="Logo"/>':'<div style="font-size:20px;font-weight:700">Cahu360</div>')
+    +'<div class="header-info"><h1>Relatório Corporativo Consolidado</h1><p>Período: '+periodoTxt+'</p><p>Gerado em: '+hoje+'</p></div>'
+    +'</div>'
+    +conteudo
+    +'<div style="margin-top:30px;padding-top:12px;border-top:1px solid #eee;display:flex;justify-content:space-between;font-size:10px;color:#999">'
+    +'<span>Cahu360 Process © '+new Date().getFullYear()+'</span><span>'+hoje+'</span></div>'
+    +'</body></html>';
+
+  var w = window.open('','_blank','width=900,height=700');
+  if (w) {
+    w.document.write(html);
+    w.document.close();
+    w.onload = function(){ w.print(); };
+  }
+}
+
+// ── Relatório 7: Perdas × Checklist ──────────────────────
+function renderPerdasChecklist() {
+  var loadingEl = document.getElementById('corp-px-loading');
+  if (loadingEl) loadingEl.style.display='block';
+
+  var res = _corpFilterRes();
+  // Agrupa CL de prevenção por data
+  var clPrevMap = {};
+  res.filter(function(r){return r.perfil==='prevencao';}).forEach(function(r){
+    if (!r.dataHora) return;
+    var data = r.dataHora.split(' ')[0];
+    if (!clPrevMap[data]) clPrevMap[data]={soma:0,cnt:0};
+    clPrevMap[data].soma+=r.pct;
+    clPrevMap[data].cnt++;
+  });
+
+  try {
+    db.collection('perdas').get().then(function(snap){
+      if (loadingEl) loadingEl.style.display='none';
+      var perdasMap = {};
+      snap.forEach(function(doc){
+        var d=doc.data();
+        if (!d.dataHora) return;
+        var data = d.dataHora.split(' ')[0];
+        if (!perdasMap[data]) perdasMap[data]=0;
+        perdasMap[data]+=(d.total||0);
+      });
+
+      // União de datas
+      var allDatas = new Set(Object.keys(perdasMap).concat(Object.keys(clPrevMap)));
+      var dias = Array.from(allDatas).sort();
+
+      var labels = dias.map(function(d){return d.slice(0,5);});
+      var perdasData = dias.map(function(d){return +(perdasMap[d]||0).toFixed(2);});
+      var clData = dias.map(function(d){
+        if (!clPrevMap[d]) return null;
+        return Math.round(clPrevMap[d].soma/clPrevMap[d].cnt);
+      });
+
+      if (S.relCharts.perdasxcl) { S.relCharts.perdasxcl.destroy(); S.relCharts.perdasxcl=null; }
+      var ctx = document.getElementById('chart-perdasxcl');
+      if (ctx) {
+        S.relCharts.perdasxcl = new Chart(ctx, {
+          type:'bar',
+          data:{labels:labels,datasets:[
+            {label:'Perdas R$',data:perdasData,backgroundColor:'#c0392b99',yAxisID:'y',borderRadius:3},
+            {label:'CL Prevenção %',data:clData,backgroundColor:'#2d9e6299',yAxisID:'y2',borderRadius:3,type:'line',borderColor:'#2d9e62',tension:.3,fill:false,pointRadius:4}
+          ]},
+          options:{responsive:true,maintainAspectRatio:false,
+            plugins:{legend:{display:true}},
+            scales:{
+              y:{position:'left',beginAtZero:true,ticks:{callback:function(v){return 'R$'+v.toFixed(0);}}},
+              y2:{position:'right',min:0,max:100,grid:{drawOnChartArea:false},ticks:{callback:function(v){return v+'%';}}}
+            }
+          }
+        });
+      }
+
+      // Calcular correlação: dias com CL < 80% e perdas acima da média
+      var mediaPerdasVal = perdasData.filter(function(v){return v>0;});
+      var mediaPerdas = mediaPerdasVal.length ? mediaPerdasVal.reduce(function(s,v){return s+v;},0)/mediaPerdasVal.length : 0;
+      var corr = dias.filter(function(d){
+        var cl=clPrevMap[d]?Math.round(clPrevMap[d].soma/clPrevMap[d].cnt):null;
+        var p=perdasMap[d]||0;
+        return cl!==null && cl<80 && p>mediaPerdas;
+      }).length;
+      var baixoCL = dias.filter(function(d){
+        var cl=clPrevMap[d]?Math.round(clPrevMap[d].soma/clPrevMap[d].cnt):null;
+        return cl!==null && cl<80;
+      }).length;
+
+      var corrEl=document.getElementById('corp-px-correlacao');
+      var diasEl=document.getElementById('corp-px-dias');
+      var baixoEl=document.getElementById('corp-px-baixo');
+      if (corrEl) corrEl.textContent=corr+' dias';
+      if (diasEl) diasEl.textContent=dias.length;
+      if (baixoEl) baixoEl.textContent=baixoCL;
+
+      var tbody=document.getElementById('corp-perdasxcl-tbody');
+      if (!tbody) return;
+      if (!dias.length) { tbody.innerHTML='<tr class="erow"><td colspan="4">Nenhum dado</td></tr>'; return; }
+      tbody.innerHTML = dias.slice(-30).reverse().map(function(d){
+        var p=(perdasMap[d]||0).toFixed(2);
+        var cl=clPrevMap[d]?Math.round(clPrevMap[d].soma/clPrevMap[d].cnt):null;
+        var clTxt=cl!==null?cl+'%':'—';
+        var stCl=cl===null?'':cl>=80?'st-ok':cl>=60?'st-warn':'st-err';
+        var status=cl!==null&&cl<80&&(perdasMap[d]||0)>mediaPerdas
+          ?'<span class="st st-err">Correlação</span>'
+          :'<span class="st st-ok">OK</span>';
+        return '<tr><td>'+d+'</td><td>R$ '+p+'</td>'
+          +'<td>'+(cl!==null?'<span class="st '+stCl+'">'+clTxt+'</span>':clTxt)+'</td>'
+          +'<td>'+status+'</td></tr>';
+      }).join('');
+    }).catch(function(e){
+      if (loadingEl) loadingEl.style.display='none';
+      var tbody=document.getElementById('corp-perdasxcl-tbody');
+      if (tbody) tbody.innerHTML='<tr class="erow"><td colspan="4">Erro ao carregar perdas do Firebase</td></tr>';
+    });
+  } catch(e) {
+    if (loadingEl) loadingEl.style.display='none';
+    var tbody=document.getElementById('corp-perdasxcl-tbody');
+    if (tbody) tbody.innerHTML='<tr class="erow"><td colspan="4">Erro ao acessar Firebase</td></tr>';
+  }
 }
 
 // Restaura sessao ao recarregar a pagina
