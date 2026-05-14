@@ -133,9 +133,31 @@ function loadCheckStateFromFirebase(callback) {
 var CLKEY = 'eco_cl_custom';
 var RESKEY = 'eco_resultados';
 
-var DEFAULT_USERS = [
-  {id:'admin',nome:'Administrador Central',email:'admin@economico.com',senha:'admin123',perfil:'admin',setor:'Central',cargo:'Admin do sistema',ativo:true}
-];
+// ===========================================
+// SEGURANÇA — Hash de senhas (SHA-256)
+// ===========================================
+var ADMIN_PROFILE = {id:'admin',nome:'Administrador Central',email:'admin@cahu360.com',perfil:'admin',setor:'Central',cargo:'Admin do sistema',ativo:true};
+// Senha inicial do admin (visível aqui apenas na primeira execução).
+// Após bootstrap ela fica armazenada como hash no Firebase.
+// Troque a senha pelo painel imediatamente após o primeiro acesso!
+var _ADMIN_INITIAL_PWD = 'Cahu360@Admin2025';
+
+function hashPassword(pwd) {
+  var encoder = new TextEncoder();
+  var data = encoder.encode(pwd);
+  return crypto.subtle.digest('SHA-256', data).then(function(buf) {
+    return Array.from(new Uint8Array(buf))
+      .map(function(b){ return b.toString(16).padStart(2,'0'); })
+      .join('');
+  });
+}
+
+function isHashed(str) {
+  return typeof str === 'string' && /^[0-9a-f]{64}$/.test(str);
+}
+
+// Mantido só para compatibilidade de estrutura — sem senha em texto claro
+var DEFAULT_USERS = [];
 
 function getUsers() {
   // Returns from cache (loaded from Firebase on login)
@@ -143,18 +165,16 @@ function getUsers() {
   if (!cached) {
     try {
       var raw = localStorage.getItem(UKEY);
-      cached = raw ? JSON.parse(raw) : DEFAULT_USERS.slice();
-    } catch(e) { cached = DEFAULT_USERS.slice(); }
+      cached = raw ? JSON.parse(raw) : [];
+    } catch(e) { cached = []; }
   }
-  // Always ensure admin exists
-  if (!cached.some(function(u){return u.id==='admin';})) cached.unshift(DEFAULT_USERS[0]);
   return cached;
 }
 
 function saveUsers(list) {
   S.usersCache = list;
   localStorage.setItem(UKEY, JSON.stringify(list));
-  // Save to Firebase (skip admin - always in code)
+  // Save all users to Firebase (admin included — sem senha em texto claro)
   list.forEach(function(u){
     db.collection('usuarios').doc(u.id).set(u).catch(function(){});
   });
@@ -163,16 +183,27 @@ function saveUsers(list) {
 function loadUsersFromFirebase(callback) {
   db.collection('usuarios').get().then(function(snap){
     var list = snap.docs.map(function(d){return d.data();});
-    // Always keep admin from DEFAULT_USERS
-    if (!list.some(function(u){return u.id==='admin';})) list.unshift(DEFAULT_USERS[0]);
+    var hasAdmin = list.some(function(u){return u.id==='admin';});
+    if (!hasAdmin) {
+      // Primeiro boot: cria admin com senha hasheada no Firebase
+      hashPassword(_ADMIN_INITIAL_PWD).then(function(hash){
+        var adminDoc = Object.assign({}, ADMIN_PROFILE, {senha: hash, _primeiroAcesso: true});
+        db.collection('usuarios').doc('admin').set(adminDoc).catch(function(){});
+        list.unshift(adminDoc);
+        S.usersCache = list;
+        localStorage.setItem(UKEY, JSON.stringify(list));
+        if (callback) callback();
+      });
+      return;
+    }
     S.usersCache = list;
     localStorage.setItem(UKEY, JSON.stringify(list));
     if (callback) callback();
   }).catch(function(){
     try {
       var raw = localStorage.getItem(UKEY);
-      S.usersCache = raw ? JSON.parse(raw) : DEFAULT_USERS.slice();
-    } catch(e){ S.usersCache = DEFAULT_USERS.slice(); }
+      S.usersCache = raw ? JSON.parse(raw) : [];
+    } catch(e){ S.usersCache = []; }
     if (callback) callback();
   });
 }
@@ -228,7 +259,30 @@ function loadCustomCLsFromFirebase(callback) {
 }
 
 // ── FIREBASE: Resultados ──
+
+// Isolamento de dados: admin/gerência veem tudo; outros veem só sua loja
+function filterResultadosByLoja(resultados) {
+  var u = S.currentUser;
+  if (!u) return [];
+  if (u.perfil === 'admin' || u.perfil === 'gerencia') return resultados;
+  var myLoja = (u.loja || '').trim().toLowerCase();
+  if (!myLoja) return resultados; // sem loja atribuída → não filtra (fallback seguro)
+  var users = getUsers();
+  return resultados.filter(function(r) {
+    // Resultados novos já têm campo loja
+    if (r.loja) return r.loja.trim().toLowerCase() === myLoja;
+    // Resultados legados: busca loja pelo nome do operador
+    var op = users.find(function(u2){ return u2.nome === r.operador; });
+    return op ? (op.loja||'').trim().toLowerCase() === myLoja : false;
+  });
+}
+
 function getResultados() {
+  return filterResultadosByLoja(S.resultadosCache || []);
+}
+
+// Acesso bruto (sem filtro) — uso interno para salvar
+function getAllResultados() {
   return S.resultadosCache || [];
 }
 
@@ -298,40 +352,51 @@ function doLogin() {
     return;
   }
 
-  // Admin — direto, sem Firebase
-  var adminUser = DEFAULT_USERS[0];
-  if (email === adminUser.email.toLowerCase() && pass === adminUser.senha) {
-    finalizarLogin(adminUser);
-    return;
-  }
-
-  // Outros usuarios — busca no Firebase
   err.textContent = 'Entrando...';
   err.style.color = '#856404';
   err.style.display = 'block';
 
-  db.collection('usuarios').where('email','==',email).get().then(function(snap){
-    if (snap.empty) {
-      err.textContent = 'E-mail ou senha incorretos.';
+  // Calcula hash antes de consultar o Firebase
+  hashPassword(pass).then(function(passHash){
+    db.collection('usuarios').where('email','==',email).get().then(function(snap){
+      if (snap.empty) {
+        err.textContent = 'E-mail ou senha incorretos.';
+        err.style.color = 'var(--r)';
+        return;
+      }
+      var found = null;
+      snap.docs.forEach(function(doc){
+        var u = doc.data();
+        if (!u.ativo) return;
+        var match = false;
+        if (isHashed(u.senha)) {
+          // Senha já hasheada — comparação segura
+          match = u.senha === passHash;
+        } else {
+          // Migração: senha ainda em texto claro → compara e atualiza
+          match = u.senha === pass;
+          if (match) {
+            db.collection('usuarios').doc(u.id).update({senha: passHash}).catch(function(){});
+            u.senha = passHash;
+            // Atualiza cache local
+            var idx = (S.usersCache||[]).findIndex(function(x){return x.id===u.id;});
+            if (idx >= 0) S.usersCache[idx].senha = passHash;
+          }
+        }
+        if (match) found = u;
+      });
+      if (!found) {
+        err.textContent = 'E-mail ou senha incorretos.';
+        err.style.color = 'var(--r)';
+        return;
+      }
+      err.style.display = 'none';
+      finalizarLogin(found);
+    }).catch(function(e){
+      err.textContent = 'Erro: ' + (e.message||'Verifique sua conexao.');
       err.style.color = 'var(--r)';
-      return;
-    }
-    var found = null;
-    snap.docs.forEach(function(doc){
-      var u = doc.data();
-      if (u.senha === pass && u.ativo) found = u;
+      err.style.display = 'block';
     });
-    if (!found) {
-      err.textContent = 'E-mail ou senha incorretos.';
-      err.style.color = 'var(--r)';
-      return;
-    }
-    err.style.display = 'none';
-    finalizarLogin(found);
-  }).catch(function(e){
-    err.textContent = 'Erro: ' + (e.message||'Verifique sua conexao.');
-    err.style.color = 'var(--r)';
-    err.style.display = 'block';
   });
 }
 
@@ -340,6 +405,12 @@ function finalizarLogin(found) {
   S.role = found.perfil;
   S.currentUser = found;
   sessionStorage.setItem('eco_session', JSON.stringify(found));
+  // Aviso de primeiro acesso: admin deve trocar a senha
+  if (found._primeiroAcesso) {
+    setTimeout(function(){
+      showToast('⚠️ Primeiro acesso! Vá em Usuários e troque a senha do admin agora.', 8000);
+    }, 2000);
+  }
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('app').style.display='flex';
   setupRole();
@@ -1255,9 +1326,10 @@ function confirmarEnviar() {
   var res = {
     id:genId(), checklistId:clId, checklistNome:label, setor:setor,
     operador:S.currentUser?S.currentUser.nome:'--', perfil:S.role,
+    loja:S.currentUser?S.currentUser.loja||'':'',
     dataHora:dh, itens:snapshot, feitos:feitos, total:total, pct:pct
   };
-  var lista = getResultados();
+  var lista = getAllResultados(); // usa lista global para não perder dados de outras lojas
   lista.push(res);
   saveResultados(lista);
   addHist('Checklist','"'+label+'" enviado ('+pct+'%)','Geral',pct===100?'st-ok':'st-warn',pct+'%');
@@ -1808,6 +1880,8 @@ function abrirModalUser() {
   document.getElementById('u-perfil').value='operator';
   document.getElementById('u-setor').value='Geral';
   document.getElementById('mu-err').style.display='none';
+  var hint=document.getElementById('senha-hint');
+  if (hint) hint.textContent='';
   document.getElementById('modal-user').style.display='flex';
 }
 
@@ -1823,13 +1897,15 @@ function editarUser(id) {
   document.getElementById('mu-title').textContent='Editar Usuário';
   document.getElementById('u-nome').value=u.nome;
   document.getElementById('u-email').value=u.email;
-  document.getElementById('u-senha').value=u.senha;
-  document.getElementById('u-senha2').value=u.senha;
+  document.getElementById('u-senha').value='';   // nunca exibe hash/senha
+  document.getElementById('u-senha2').value='';
   document.getElementById('u-perfil').value=u.perfil;
   document.getElementById('u-setor').value=u.setor||'Geral';
   document.getElementById('u-cargo').value=u.cargo||'';
   document.getElementById('u-loja').value=u.loja||'';
   document.getElementById('mu-err').style.display='none';
+  var hint=document.getElementById('senha-hint');
+  if (hint) hint.textContent='(em branco = manter atual)';
   document.getElementById('modal-user').style.display='flex';
 }
 
@@ -1845,19 +1921,33 @@ function salvarUser() {
   var err=document.getElementById('mu-err');
   if (!nome){err.textContent='Informe o nome.';err.style.display='block';return;}
   if (!email||email.indexOf('@')<0){err.textContent='E-mail inválido.';err.style.display='block';return;}
-  if (senha.length<4){err.textContent='Senha com mínimo 4 caracteres.';err.style.display='block';return;}
-  if (senha!==senha2){err.textContent='Senhas não coincidem.';err.style.display='block';return;}
+  // Ao editar: senha em branco = manter a existente
+  var trocandoSenha = senha.length > 0;
+  if (!editingUserId && !trocandoSenha){err.textContent='Informe uma senha.';err.style.display='block';return;}
+  if (trocandoSenha && senha.length<4){err.textContent='Senha com mínimo 4 caracteres.';err.style.display='block';return;}
+  if (trocandoSenha && senha!==senha2){err.textContent='Senhas não coincidem.';err.style.display='block';return;}
   var users=getUsers();
   var dup=users.find(function(u){return u.email.toLowerCase()===email && u.id!==editingUserId;});
   if (dup){err.textContent='E-mail já cadastrado.';err.style.display='block';return;}
-  if (editingUserId) {
-    users=users.map(function(u){return u.id===editingUserId?Object.assign({},u,{nome,email,senha,perfil,setor,cargo,loja}):u;});
-  } else {
-    users.push({id:genId(),nome,email,senha,perfil,setor,cargo,loja,ativo:true});
+
+  function aplicarSalvar(senhaFinal) {
+    if (editingUserId) {
+      var updates = {nome:nome, email:email, perfil:perfil, setor:setor, cargo:cargo, loja:loja};
+      if (senhaFinal) updates.senha = senhaFinal;
+      users=users.map(function(u){return u.id===editingUserId?Object.assign({},u,updates):u;});
+    } else {
+      users.push({id:genId(),nome:nome,email:email,senha:senhaFinal,perfil:perfil,setor:setor,cargo:cargo,loja:loja,ativo:true});
+    }
+    saveUsers(users);
+    fecharModalUser();
+    renderUsers();
   }
-  saveUsers(users);
-  fecharModalUser();
-  renderUsers();
+
+  if (trocandoSenha) {
+    hashPassword(senha).then(function(hash){ aplicarSalvar(hash); });
+  } else {
+    aplicarSalvar(null); // mantém senha existente
+  }
 }
 
 function excluirUser(id) {
@@ -1883,6 +1973,11 @@ var UPCLS={admin:'st-info',gerencia:'st-info',operator:'st-ok',prevencao:'st-err
 
 function renderUsers() {
   var users=getUsers();
+  // Isolamento: gerência vê apenas usuários da sua loja; admin vê todos
+  if (S.currentUser && S.currentUser.perfil !== 'admin' && S.currentUser.loja) {
+    var myLoja=(S.currentUser.loja||'').trim().toLowerCase();
+    users=users.filter(function(u){ return (u.loja||'').trim().toLowerCase()===myLoja; });
+  }
   var filtered=userFilter==='todos'?users:users.filter(function(u){return u.perfil===userFilter;});
   var tbody=document.getElementById('u-tbody');
   if (!filtered.length){tbody.innerHTML='<tr class="erow"><td colspan="8">Nenhum usuário neste perfil</td></tr>';return;}
@@ -2743,7 +2838,7 @@ function _renderRelatorios_unused() {
 // ===========================================
 // UTILS
 // ===========================================
-function showToast(msg) {
+function showToast(msg, duration) {
   var t = document.getElementById('toast');
   if (!t) {
     t = document.createElement('div');
@@ -2754,7 +2849,7 @@ function showToast(msg) {
   t.textContent = msg;
   t.style.opacity = '1';
   clearTimeout(t._timer);
-  t._timer = setTimeout(function(){ t.style.opacity='0'; }, 3000);
+  t._timer = setTimeout(function(){ t.style.opacity='0'; }, duration || 3000);
 }
 
 function showAlert(id) {
