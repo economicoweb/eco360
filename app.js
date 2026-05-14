@@ -136,7 +136,7 @@ var RESKEY = 'eco_resultados';
 // ===========================================
 // SEGURANÇA — Hash de senhas (SHA-256)
 // ===========================================
-var ADMIN_PROFILE = {id:'admin',nome:'Administrador Central',email:'admin@cahu360.com',perfil:'admin',setor:'Central',cargo:'Admin do sistema',ativo:true};
+var ADMIN_PROFILE = {id:'admin',nome:'Administrador Central',email:'admin@economico.com',perfil:'admin',setor:'Central',cargo:'Admin do sistema',ativo:true};
 // Senha inicial do admin (visível aqui apenas na primeira execução).
 // Após bootstrap ela fica armazenada como hash no Firebase.
 // Troque a senha pelo painel imediatamente após o primeiro acesso!
