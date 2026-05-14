@@ -20,9 +20,15 @@ var UKEY = 'eco_users';
 var INV_KEY = 'eco_inventario';
 var PERD_KEY = 'eco_perdas';
 
+function getLocalDate() {
+  var d = new Date();
+  return d.getFullYear() + '-'
+    + String(d.getMonth() + 1).padStart(2, '0') + '-'
+    + String(d.getDate()).padStart(2, '0');
+}
 function saveInvToFirebase() {
   var userId = S.currentUser ? S.currentUser.id : 'guest';
-  var hoje = new Date().toISOString().slice(0,10);
+  var hoje = getLocalDate();
   db.collection('inventarios').doc(userId+'_'+hoje).set({
     userId: userId, date: hoje,
     operador: S.currentUser ? S.currentUser.nome : '--',
@@ -41,7 +47,7 @@ function savePerdaToFirebase(item) {
 
 function loadInvFromFirebase(callback) {
   var userId = S.currentUser ? S.currentUser.id : 'guest';
-  var hoje = new Date().toISOString().slice(0,10);
+  var hoje = getLocalDate();
   db.collection('inventarios').doc(userId+'_'+hoje).get().then(function(doc){
     if (doc.exists && doc.data().items) {
       S.invItems = doc.data().items;
@@ -64,7 +70,7 @@ var CLSTATE_PREFIX = 'eco_clstate_';
 
 function getStateKey() {
   var userId = S.currentUser ? S.currentUser.id : 'guest';
-  var today = new Date().toISOString().slice(0,10);
+  var today = getLocalDate();
   return CLSTATE_PREFIX + userId + '_' + today;
 }
 
@@ -79,7 +85,7 @@ function saveCheckState() {
   try {
     localStorage.setItem(getStateKey(), JSON.stringify(S.checkState));
     var userId = S.currentUser ? S.currentUser.id : 'guest';
-    var today = new Date().toISOString().slice(0,10);
+    var today = getLocalDate();
     // Salvar no Firebase SEM as fotos (base64 e muito grande)
     var stateParaSalvar = {};
     Object.keys(S.checkState).forEach(function(k){
@@ -97,7 +103,7 @@ function saveCheckState() {
 
 function loadCheckStateFromFirebase(callback) {
   var userId = S.currentUser ? S.currentUser.id : 'guest';
-  var today = new Date().toISOString().slice(0,10);
+  var today = getLocalDate();
   db.collection('checkstates').doc(userId+'_'+today).get().then(function(doc){
     if (doc.exists && doc.data().state) {
       try {
@@ -386,7 +392,7 @@ function finalizarLogin(found) {
     }),
     (function(){
       var userId = found.id;
-      var hoje = new Date().toISOString().slice(0,10);
+      var hoje = getLocalDate();
       return db.collection('checkstates').doc(userId+'_'+hoje).get().then(function(doc){
         if (doc.exists && doc.data().state) {
           try { S.checkState = JSON.parse(doc.data().state); } catch(e){ S.checkState={}; }
@@ -550,7 +556,7 @@ function setCLMode(mode, btn) {
 function sincronizarEstadoFirebase() {
   var userId = S.currentUser ? S.currentUser.id : null;
   if (!userId) return;
-  var hoje = new Date().toISOString().slice(0,10);
+  var hoje = getLocalDate();
 
   // Load BOTH checkstate and resultados fresh from Firebase, then rebuild UI
   var promiseState = db.collection('checkstates').doc(userId+'_'+hoje).get()
@@ -560,7 +566,10 @@ function sincronizarEstadoFirebase() {
           var fbState = JSON.parse(doc.data().state);
           S.checkState = fbState;
           localStorage.setItem('eco_clstate_'+userId+'_'+hoje, JSON.stringify(fbState));
-        } catch(e){}
+        } catch(e){ S.checkState = {}; }
+      } else {
+        S.checkState = {};
+        localStorage.removeItem('eco_clstate_'+userId+'_'+hoje);
       }
     }).catch(function(){});
 
@@ -801,7 +810,7 @@ function salvarFotoTipo(clId, idx, tipo, input) {
 
     // Salvar foto separado no Firebase (nao no checkstate)
     var userId = S.currentUser ? S.currentUser.id : 'guest';
-    var today = new Date().toISOString().slice(0,10);
+    var today = getLocalDate();
     var fotoDocId = userId+'_'+today+'_'+clId+'_'+tipo+'_'+idx;
     db.collection('fotos').doc(fotoDocId).set({
       userId: userId, date: today, clId: clId,
@@ -1020,7 +1029,7 @@ function mostrarStepConfirm(userTxt) {
 
 function executarReset() {
   var clId = pendingResetClId;
-  var hoje = new Date().toISOString().slice(0,10);
+  var hoje = getLocalDate();
   var itensCopy = pendingResetItens.slice();
   var usersCopy = pendingResetUsers.slice();
 
@@ -1900,7 +1909,7 @@ function updateDash() {
   var isAdmOrGer = isAdmin||isGer;
 
   // Checklist: para admin/gerencia mostra total de envios do dia, para operador mostra progresso local
-  var today = new Date().toISOString().slice(0,10);
+  var today = getLocalDate();
   var resultados = getResultados();
   var resultadosHoje = resultados.filter(function(r){ return r.dataHora && r.dataHora.indexOf(new Date().toLocaleDateString('pt-BR'))===0; });
 
