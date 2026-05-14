@@ -1932,7 +1932,10 @@ function salvarUser() {
 
   function aplicarSalvar(senhaFinal) {
     if (editingUserId) {
-      var updates = {nome:nome, email:email, perfil:perfil, setor:setor, cargo:cargo, loja:loja};
+      var existing = users.find(function(u){return u.id===editingUserId;}) || {};
+      // Admin nunca perde o perfil 'admin' pelo select (select não tem essa opção)
+      var perfilFinal = editingUserId==='admin' ? 'admin' : perfil;
+      var updates = {nome:nome, email:email, perfil:perfilFinal, setor:setor, cargo:cargo, loja:loja};
       if (senhaFinal) updates.senha = senhaFinal;
       users=users.map(function(u){return u.id===editingUserId?Object.assign({},u,updates):u;});
     } else {
@@ -1983,7 +1986,8 @@ function renderUsers() {
   if (!filtered.length){tbody.innerHTML='<tr class="erow"><td colspan="8">Nenhum usuário neste perfil</td></tr>';return;}
   tbody.innerHTML=filtered.map(function(u){
     var actions = u.id==='admin'
-      ? '<span style="font-size:11px;color:var(--t3)">protegido</span>'
+      ? '<button class="btn btn-s btn-sm" onclick="editarUser(\''+u.id+'\')">Editar</button>'
+        +'<span style="font-size:11px;color:var(--t3);margin-left:4px">sem exclusão</span>'
       : '<button class="btn btn-s btn-sm" onclick="editarUser(\''+u.id+'\')">Editar</button>'
         +'<button class="btn btn-s btn-sm" onclick="toggleAtivo(\''+u.id+'\')" style="'+(u.ativo?'color:var(--am)':'color:var(--g)')+'">'+(u.ativo?'Inativar':'Ativar')+'</button>'
         +'<button class="btn btn-d btn-sm" onclick="excluirUser(\''+u.id+'\')">Excluir</button>';
