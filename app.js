@@ -2688,15 +2688,15 @@ function showAlert(id) {
 }
 
 // Restaura sessao ao recarregar a pagina
-document.addEventListener('DOMContentLoaded', function() {
+// (script e defer — DOM ja esta pronto aqui, sem precisar de DOMContentLoaded)
+(function() {
   try {
     var saved = sessionStorage.getItem('eco_session');
     if (saved) {
       var user = JSON.parse(saved);
       if (user && user.id && user.perfil) {
         finalizarLogin(user);
-        return;
       }
     }
   } catch(e) {}
-});
+})();
