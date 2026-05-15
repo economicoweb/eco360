@@ -167,10 +167,15 @@ var RESKEY = 'eco_resultados';
 // SEGURANÇA — Hash de senhas (SHA-256)
 // ===========================================
 var ADMIN_PROFILE = {id:'admin',nome:'Administrador Central',email:'admin@economico.com',perfil:'admin',setor:'Central',cargo:'Admin do sistema',ativo:true};
-// Senha inicial do admin (visível aqui apenas na primeira execução).
-// Após bootstrap ela fica armazenada como hash no Firebase.
-// Troque a senha pelo painel imediatamente após o primeiro acesso!
-var _ADMIN_INITIAL_PWD = 'Cahu360@Admin2025';
+
+function gerarSenhaAleatoria() {
+  var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#!';
+  var senha = '';
+  for (var i = 0; i < 12; i++) {
+    senha += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return senha;
+}
 
 function hashPassword(pwd) {
   var encoder = new TextEncoder();
@@ -215,13 +220,16 @@ function loadUsersFromFirebase(callback) {
     var list = snap.docs.map(function(d){return d.data();});
     var hasAdmin = list.some(function(u){return u.id==='admin';});
     if (!hasAdmin) {
-      // Primeiro boot: cria admin com senha hasheada no Firebase
-      hashPassword(_ADMIN_INITIAL_PWD).then(function(hash){
+      // Primeiro boot: gera senha aleatória e cria admin no Firebase
+      var senhaGerada = gerarSenhaAleatoria();
+      hashPassword(senhaGerada).then(function(hash){
         var adminDoc = Object.assign({}, ADMIN_PROFILE, {senha: hash, _primeiroAcesso: true});
         db.collection('usuarios').doc('admin').set(adminDoc).catch(function(){});
         list.unshift(adminDoc);
         S.usersCache = list;
         localStorage.setItem(UKEY, JSON.stringify(list));
+        // Exibe senha gerada — deve ser anotada e trocada imediatamente
+        alert('PRIMEIRO ACESSO — ANOTE A SENHA ABAIXO:\n\nE-mail: admin@economico.com\nSenha: ' + senhaGerada + '\n\nTroque a senha imediatamente após o primeiro login!');
         if (callback) callback();
       });
       return;
