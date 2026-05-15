@@ -2962,6 +2962,151 @@ function renderRelRanking() {
 }
 
 // ── Exportar PDF ──
+function exportarRelatorioSupervisor() {
+  var logoEl = document.querySelector('.sb-logo img');
+  var logoSrc = logoEl ? logoEl.src : '';
+  var agora = new Date();
+  var hojeStr = agora.toLocaleDateString('pt-BR');
+  var hojeExtenso = agora.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  hojeExtenso = hojeExtenso.charAt(0).toUpperCase()+hojeExtenso.slice(1);
+  var loja = (S.currentUser && S.currentUser.loja) ? S.currentUser.loja : 'Cahu360';
+
+  var resultados = getResultados();
+  var resultadosHoje = resultados.filter(function(r){ return r.dataHora && r.dataHora.indexOf(hojeStr)===0; });
+  var totalEnvios = resultadosHoje.length;
+  var completos = resultadosHoje.filter(function(r){return r.pct===100;}).length;
+  var media = totalEnvios ? Math.round(resultadosHoje.reduce(function(s,r){return s+r.pct;},0)/totalEnvios) : 0;
+
+  // Auxiliares de prevenção que enviaram hoje
+  var prevencaoHoje = resultadosHoje.filter(function(r){return r.perfil==='prevencao';});
+  var opsUnicos = [];
+  prevencaoHoje.forEach(function(r){ if(opsUnicos.indexOf(r.operador)<0) opsUnicos.push(r.operador); });
+
+  // Todos os usuários de prevenção
+  var users = getUsers().filter(function(u){return u.perfil==='prevencao' && u.ativo;});
+
+  // Perdas do dia
+  var totalPerdas = S.perdaItems.reduce(function(s,i){return s+i.total;},0);
+
+  // ── Seção: Status da equipe de prevenção ──
+  var equipeTbody = users.length ? users.map(function(u){
+    var urs = prevencaoHoje.filter(function(r){return r.operador===u.nome;});
+    var enviou = urs.length>0;
+    var mediU = enviou ? Math.round(urs.reduce(function(s,r){return s+r.pct;},0)/urs.length) : null;
+    var cor = !enviou?'#e74c3c':mediU===100?'#2d9e62':mediU>=80?'#27ae60':mediU>=60?'#d68910':'#e74c3c';
+    var status = !enviou?'Pendente':mediU===100?'Concluído 100%':mediU+'% concluído';
+    return '<tr>'
+      +'<td>'+u.nome+'</td>'
+      +'<td>'+(u.loja||loja)+'</td>'
+      +'<td>'+urs.length+' envio'+(urs.length>1?'s':'')+'</td>'
+      +'<td style="font-weight:700;color:'+cor+'">'+status+'</td>'
+      +'</tr>';
+  }).join('') : '<tr><td colspan="4" style="text-align:center;color:#999">Nenhum auxiliar cadastrado</td></tr>';
+
+  // ── Seção: Checklists de prevenção enviados ──
+  var checkTbody = prevencaoHoje.length ? prevencaoHoje.slice().reverse().map(function(r){
+    var cor = r.pct===100?'#2d9e62':r.pct>=60?'#d68910':'#e74c3c';
+    return '<tr>'
+      +'<td>'+r.dataHora.split(' ')[1]+'</td>'
+      +'<td>'+r.operador+'</td>'
+      +'<td>'+r.checklistNome+'</td>'
+      +'<td style="font-weight:700;color:'+cor+'">'+r.pct+'%</td>'
+      +'</tr>';
+  }).join('') : '<tr><td colspan="4" style="text-align:center;color:#999">Nenhum checklist enviado hoje</td></tr>';
+
+  // ── Seção: Perdas do dia ──
+  var perdasTbody = S.perdaItems.length ? S.perdaItems.slice().reverse().map(function(p){
+    return '<tr>'
+      +'<td>'+p.hora+'</td>'
+      +'<td>'+p.produto+'</td>'
+      +'<td>'+p.setor+'</td>'
+      +'<td>'+p.motivo+'</td>'
+      +'<td>'+p.qtd+'</td>'
+      +'<td style="font-weight:700;color:#e74c3c">R$ '+p.total.toFixed(2)+'</td>'
+      +'</tr>';
+  }).join('') : '<tr><td colspan="6" style="text-align:center;color:#999">Nenhuma perda registrada hoje</td></tr>';
+
+  var statusCor = media>=80?'#2d9e62':media>=60?'#d68910':'#e74c3c';
+  var statusTxt = media>=80?'NORMAL':media>=60?'ATENÇÃO':'CRÍTICO';
+
+  var html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/><title>Relatório Supervisor — '+hojeStr+'</title>'
+    +'<style>'
+    +'*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}'
+    +'body{padding:32px;color:#111;font-size:12px;background:#fff}'
+    +'.header{display:flex;align-items:center;justify-content:space-between;border-bottom:4px solid #FFC600;padding-bottom:16px;margin-bottom:24px}'
+    +'.header img{height:56px;object-fit:contain}'
+    +'.header-r{text-align:right}'
+    +'.header-r h1{font-size:17px;font-weight:700;color:#111}'
+    +'.header-r p{font-size:11px;color:#666;margin-top:3px}'
+    +'.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}'
+    +'.kpi{background:#f8f9fa;border-radius:8px;padding:14px;border-left:4px solid #FFC600}'
+    +'.kpi .k-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:#888;margin-bottom:6px}'
+    +'.kpi .k-val{font-size:22px;font-weight:800;color:#111}'
+    +'.kpi .k-sub{font-size:10px;color:#888;margin-top:3px}'
+    +'.status-pill{display:inline-block;padding:4px 14px;border-radius:20px;font-size:11px;font-weight:700;color:#fff;background:'+statusCor+'}'
+    +'.section{margin-bottom:24px}'
+    +'.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#333;border-bottom:2px solid #FFC600;padding-bottom:6px;margin-bottom:12px}'
+    +'table{width:100%;border-collapse:collapse;font-size:11px}'
+    +'th{background:#FFC600;padding:8px 10px;text-align:left;font-size:9.5px;text-transform:uppercase;letter-spacing:.4px;color:#111}'
+    +'td{padding:8px 10px;border-bottom:1px solid #eee}'
+    +'tr:last-child td{border:none}'
+    +'.assinatura{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:40px}'
+    +'.ass-box{border-top:1px solid #333;padding-top:8px;font-size:11px;color:#555}'
+    +'.footer{margin-top:28px;padding-top:10px;border-top:1px solid #eee;display:flex;justify-content:space-between;font-size:9.5px;color:#999}'
+    +'@media print{body{padding:20px}}'
+    +'</style></head><body>'
+
+    // Cabeçalho
+    +'<div class="header">'
+    +(logoSrc?'<img src="'+logoSrc+'" alt="Logo"/>':'<div style="font-size:18px;font-weight:800">Cahu360</div>')
+    +'<div class="header-r">'
+    +'<h1>Relatório Diário — Prevenção de Perdas</h1>'
+    +'<p>'+hojeExtenso+'</p>'
+    +'<p>Loja: <strong>'+loja+'</strong> &nbsp;|&nbsp; Status: <span class="status-pill">'+statusTxt+'</span></p>'
+    +'</div></div>'
+
+    // KPIs
+    +'<div class="kpis">'
+    +'<div class="kpi"><div class="k-lbl">Checklists Enviados</div><div class="k-val">'+totalEnvios+'</div><div class="k-sub">'+completos+' com 100%</div></div>'
+    +'<div class="kpi"><div class="k-lbl">Conformidade Geral</div><div class="k-val" style="color:'+statusCor+'">'+media+'%</div><div class="k-sub">média do dia</div></div>'
+    +'<div class="kpi"><div class="k-lbl">Aux. Prevenção Ativos</div><div class="k-val">'+opsUnicos.length+'</div><div class="k-sub">de '+users.length+' cadastrados</div></div>'
+    +'<div class="kpi"><div class="k-lbl">Total de Perdas</div><div class="k-val" style="color:#e74c3c">R$ '+totalPerdas.toFixed(2)+'</div><div class="k-sub">'+S.perdaItems.length+' registros</div></div>'
+    +'</div>'
+
+    // Status da equipe
+    +'<div class="section"><div class="section-title">Status da Equipe de Prevenção</div>'
+    +'<table><thead><tr><th>Auxiliar</th><th>Loja</th><th>Envios</th><th>Status</th></tr></thead>'
+    +'<tbody>'+equipeTbody+'</tbody></table></div>'
+
+    // Checklists executados
+    +'<div class="section"><div class="section-title">Checklists Executados — Prevenção</div>'
+    +'<table><thead><tr><th>Hora</th><th>Auxiliar</th><th>Checklist</th><th>Conclusão</th></tr></thead>'
+    +'<tbody>'+checkTbody+'</tbody></table></div>'
+
+    // Perdas registradas
+    +'<div class="section"><div class="section-title">Perdas Registradas no Dia</div>'
+    +'<table><thead><tr><th>Hora</th><th>Produto</th><th>Setor</th><th>Motivo</th><th>Qtd</th><th>Total</th></tr></thead>'
+    +'<tbody>'+perdasTbody+'</tbody></table></div>'
+
+    // Assinaturas
+    +'<div class="assinatura">'
+    +'<div class="ass-box">Responsável pela Prevenção de Perdas</div>'
+    +'<div class="ass-box">Supervisor / Gerente</div>'
+    +'</div>'
+
+    +'<div class="footer"><span>Cahu360 Process © '+agora.getFullYear()+'</span><span>Gerado em: '+agora.toLocaleString('pt-BR')+'</span></div>'
+    +'</body></html>';
+
+  var w = window.open('','_blank','width=900,height=700');
+  if (w) {
+    w.document.write(html);
+    w.document.close();
+    w.onload = function(){ w.print(); };
+  } else {
+    showToast('Permita pop-ups para gerar o relatório.');
+  }
+}
+
 function exportarPDF(tipo) {
   var logoEl = document.querySelector('.sb-logo img');
   var logoSrc = logoEl ? logoEl.src : '';
