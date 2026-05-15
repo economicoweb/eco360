@@ -16,8 +16,6 @@ db.enablePersistence({synchronizeTabs: true}).catch(function(err){
     console.warn('Offline: este navegador não suporta persistência.');
   }
 });
-// Garante que escritas não fiquem presas esperando confirmação do servidor
-db.settings({ignoreUndefinedProperties: true});
 
 // ── PWA: registrar Service Worker ──
 if ('serviceWorker' in navigator) {
@@ -3735,34 +3733,19 @@ function confirmarEnvioNegativo() {
     respondidoPor: null
   };
 
-  function finalizarEnvio() {
-    _negativosCache.unshift(neg);
-    document.getElementById('modal-neg-import').style.display = 'none';
-    if (btn) { btn.textContent = 'Enviar para Loja'; btn.disabled = false; }
-    var la = document.getElementById('neg-lista-admin');
-    if (la) la.style.display = 'block';
-    renderNegativosAdmin();
-    showToast('✅ Planilha enviada para ' + loja + '!', 4000);
-  }
+  // Fecha modal e atualiza tela IMEDIATAMENTE — Firebase salva em background
+  _negativosCache.unshift(neg);
+  document.getElementById('modal-neg-import').style.display = 'none';
+  if (btn) { btn.textContent = 'Enviar para Loja'; btn.disabled = false; }
+  var la = document.getElementById('neg-lista-admin');
+  if (la) la.style.display = 'block';
+  renderNegativosAdmin();
+  showToast('✅ Planilha enviada para ' + loja + '!', 4000);
 
-  // Timeout de 6s: se o Firebase não respondeu ainda, conclui mesmo assim
-  // (a persistência offline já salvou localmente e vai sincronizar em breve)
-  var _enviado = false;
-  var _timer = setTimeout(function() {
-    if (!_enviado) { _enviado = true; finalizarEnvio(); }
-  }, 6000);
-
-  db.collection('negativos').doc(neg.id).set(neg).then(function() {
-    if (!_enviado) { _enviado = true; clearTimeout(_timer); finalizarEnvio(); }
-  }).catch(function(e) {
-    clearTimeout(_timer);
-    _enviado = true;
-    if (btn) { btn.textContent = 'Enviar para Loja'; btn.disabled = false; }
-    var msg = e.message || 'Verifique sua conexão.';
-    err.textContent = 'Erro: ' + msg;
-    err.style.display = 'block';
-    showToast('❌ Erro ao enviar: ' + msg, 6000);
-    console.error('Negativos save error:', e);
+  // Sincroniza com Firebase em background (não bloqueia a UI)
+  db.collection('negativos').doc(neg.id).set(neg).catch(function(e) {
+    console.error('Negativos Firebase sync error:', e);
+    showToast('⚠️ Salvo localmente. Sincronização pendente.', 4000);
   });
 }
 
@@ -3823,29 +3806,18 @@ function submeterNegativo() {
   var btn = document.querySelector('#modal-neg-preencher .btn-p');
   if (btn) { btn.textContent = 'Enviando...'; btn.disabled = true; }
 
-  function finalizarResposta() {
-    var idx = _negativosCache.findIndex(function(n){ return n.id === neg.id; });
-    if (idx >= 0) _negativosCache[idx] = neg;
-    if (btn) { btn.textContent = '✅ Enviar Respostas'; btn.disabled = false; }
-    document.getElementById('modal-neg-preencher').style.display = 'none';
-    renderNegativosOp();
-    showToast('Respostas enviadas com sucesso! ✅', 4000);
-  }
+  // Fecha modal e atualiza tela IMEDIATAMENTE
+  var idx = _negativosCache.findIndex(function(n){ return n.id === neg.id; });
+  if (idx >= 0) _negativosCache[idx] = neg;
+  if (btn) { btn.textContent = '✅ Enviar Respostas'; btn.disabled = false; }
+  document.getElementById('modal-neg-preencher').style.display = 'none';
+  renderNegativosOp();
+  showToast('Respostas enviadas com sucesso! ✅', 4000);
 
-  var _resp = false;
-  var _timerR = setTimeout(function() {
-    if (!_resp) { _resp = true; finalizarResposta(); }
-  }, 6000);
-
-  db.collection('negativos').doc(neg.id).set(neg).then(function() {
-    if (!_resp) { _resp = true; clearTimeout(_timerR); finalizarResposta(); }
-  }).catch(function(e) {
-    clearTimeout(_timerR);
-    _resp = true;
-    if (btn) { btn.textContent = '✅ Enviar Respostas'; btn.disabled = false; }
-    var errEl = document.getElementById('neg-preencher-err');
-    if (errEl) { errEl.textContent = 'Erro: ' + (e.message || 'verifique sua conexão.'); errEl.style.display = 'block'; }
-    showToast('❌ Erro ao enviar respostas', 5000);
+  // Sincroniza com Firebase em background
+  db.collection('negativos').doc(neg.id).set(neg).catch(function(e) {
+    console.error('Negativos resposta sync error:', e);
+    showToast('⚠️ Salvo localmente. Sincronização pendente.', 4000);
   });
 }
 
