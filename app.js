@@ -2828,11 +2828,11 @@ function exportarPDF(tipo) {
     +'</style>'
     +'</head><body>'
     +'<div class="header">'
-    +(logoSrc ? '<img src="'+logoSrc+'" alt="Logo"/>' : '<div style="font-size:20px;font-weight:700">Eco360</div>')
-    +'<div class="header-info"><h1>'+titulo+'</h1><p>'+hoje+'</p><p>Eco360 Process - Gestão Completa. Resultados Reais.</p></div>'
+    +(logoSrc ? '<img src="'+logoSrc+'" alt="Logo"/>' : '<div style="font-size:20px;font-weight:700">Cahu360</div>')
+    +'<div class="header-info"><h1>'+titulo+'</h1><p>'+hoje+'</p><p>Cahu360 Process - Gestão Completa. Resultados Reais.</p></div>'
     +'</div>'
     +conteudo
-    +'<div class="footer"><span>Eco360 Process © '+new Date().getFullYear()+'</span><span>Gerado em: '+new Date().toLocaleString('pt-BR')+'</span></div>'
+    +'<div class="footer"><span>Cahu360 Process © '+new Date().getFullYear()+'</span><span>Gerado em: '+new Date().toLocaleString('pt-BR')+'</span></div>'
     +'</body></html>';
 
   var blob = new Blob([html], {type:'text/html'});
