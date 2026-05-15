@@ -3737,15 +3737,18 @@ function confirmarEnvioNegativo() {
     _negativosCache.unshift(neg);
     document.getElementById('modal-neg-import').style.display = 'none';
     if (btn) { btn.textContent = 'Enviar para Loja'; btn.disabled = false; }
-    // Garante que lista admin esteja visível
     var la = document.getElementById('neg-lista-admin');
     if (la) la.style.display = 'block';
     renderNegativosAdmin();
-    showToast('✅ Planilha enviada para ' + loja + '!');
+    showToast('✅ Planilha enviada para ' + loja + '!', 4000);
   }).catch(function(e) {
     if (btn) { btn.textContent = 'Enviar para Loja'; btn.disabled = false; }
-    err.textContent = 'Erro ao salvar: ' + (e.message || 'verifique sua conexão.');
+    var msg = e.message || 'Verifique sua conexão.';
+    err.textContent = 'Erro: ' + msg;
     err.style.display = 'block';
+    // Toast visível independente do modal
+    showToast('❌ Erro ao enviar: ' + msg, 6000);
+    console.error('Negativos save error:', e);
   });
 }
 
