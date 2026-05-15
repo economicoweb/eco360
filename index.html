@@ -116,17 +116,74 @@
 
       <!-- DASHBOARD -->
       <div id="panel-dashboard" class="panel active">
+
+        <!-- Header de status -->
+        <div style="display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid var(--gray2);border-radius:14px;padding:16px 22px;margin-bottom:20px;box-shadow:var(--sh)">
+          <div>
+            <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--t)" id="dash-loja-nome">Cahu360</div>
+            <div style="font-size:12px;color:var(--t3);margin-top:2px" id="dash-data-full"></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:20px;border:1.5px solid var(--gray2);transition:border-color .3s" id="dash-saude">
+            <div style="width:9px;height:9px;border-radius:50%;background:var(--gray3);transition:background .3s" id="dash-saude-dot"></div>
+            <div style="font-size:12px;font-weight:600;color:var(--t3);transition:color .3s" id="dash-saude-label">Carregando...</div>
+          </div>
+        </div>
+
+        <!-- KPIs -->
         <div class="g4">
-          <div class="mc"><div class="lbl">Checklist Hoje</div><div class="val up" id="dck-val">0/0</div><div class="pbar"><div class="pfill" id="dck-bar" style="width:0%;background:var(--g2)"></div></div><div class="sub" id="dck-pct">0%</div></div>
-          <div class="mc"><div class="lbl">Perdas do Dia</div><div class="val dn" id="dp-val">R$ 0,00</div><div class="sub" id="dp-cnt">0 registros</div></div>
-          <div class="mc"><div class="lbl">Divergências Inv.</div><div class="val" style="color:var(--am)" id="ddiv-val">0</div><div class="sub">itens com diferença</div></div>
-          <div class="mc"><div class="lbl">Itens Inventariados</div><div class="val" id="dinv-val">0</div><div class="sub">hoje</div></div>
+          <div class="mc">
+            <div class="lbl">Checklists Hoje</div>
+            <div class="val up" id="dck-val">0/0</div>
+            <div class="pbar"><div class="pfill" id="dck-bar" style="width:0%;background:var(--g2)"></div></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px">
+              <div class="sub" id="dck-pct">0%</div>
+              <div id="dck-trend" style="font-size:11px;font-weight:600"></div>
+            </div>
+          </div>
+          <div class="mc">
+            <div class="lbl">Conformidade Geral</div>
+            <div class="val" id="dconf-val" style="color:var(--g)">—</div>
+            <div class="sub" style="margin-top:5px" id="dconf-sub">100% completos: 0</div>
+            <div id="dconf-trend" style="font-size:11px;font-weight:600;margin-top:4px"></div>
+          </div>
+          <div class="mc">
+            <div class="lbl">Perdas do Dia</div>
+            <div class="val dn" id="dp-val">R$ 0,00</div>
+            <div class="sub" style="margin-top:5px" id="dp-cnt">0 registros</div>
+            <!-- elementos mantidos para compatibilidade -->
+            <div id="ddiv-val" style="display:none">0</div>
+            <div id="dinv-val" style="display:none">0</div>
+          </div>
+          <div class="mc">
+            <div class="lbl">Operadores Ativos</div>
+            <div class="val" id="dops-val">0</div>
+            <div class="sub" style="margin-top:5px" id="dops-sub">enviaram hoje</div>
+          </div>
         </div>
+
+        <!-- Status da equipe -->
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-hdr">
+            <div class="card-title">Status da Equipe — Hoje</div>
+            <div id="dash-equipe-resumo" style="font-size:12px;color:var(--t3)"></div>
+          </div>
+          <div id="dash-equipe" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:8px">
+            <div style="text-align:center;color:var(--t3);font-size:13px;padding:20px;grid-column:1/-1">Nenhum envio hoje</div>
+          </div>
+        </div>
+
+        <!-- Gráficos -->
         <div class="g2">
-          <div class="card"><div class="card-hdr"><div class="card-title">Perdas por Categoria</div></div><div style="position:relative;height:210px"><canvas id="chartPerdas"></canvas></div></div>
-          <div class="card"><div class="card-hdr"><div class="card-title">Checklist por Turno</div></div><div style="position:relative;height:210px"><canvas id="chartCheck"></canvas></div></div>
+          <div class="card"><div class="card-hdr"><div class="card-title">Perdas por Setor</div></div><div style="position:relative;height:210px"><canvas id="chartPerdas"></canvas></div></div>
+          <div class="card"><div class="card-hdr"><div class="card-title">Conformidade — Últimos 7 dias</div></div><div style="position:relative;height:210px"><canvas id="chartCheck"></canvas></div></div>
         </div>
-        <div class="card"><div class="card-hdr"><div class="card-title">Últimas Ocorrências</div></div>
+
+        <!-- Ocorrências -->
+        <div class="card">
+          <div class="card-hdr">
+            <div class="card-title">Últimas Ocorrências</div>
+            <div id="dash-occ-count" style="font-size:12px;color:var(--t3)"></div>
+          </div>
           <table><thead><tr><th>Hora</th><th>Tipo</th><th>Descrição</th><th>Setor</th><th>Operador</th><th>Status</th></tr></thead>
           <tbody id="d-hist"><tr class="erow"><td colspan="6">Nenhuma ocorrência registrada hoje</td></tr></tbody></table>
         </div>

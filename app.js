@@ -2190,21 +2190,150 @@ function updateDash() {
   var isGer = S.role==='gerencia';
   var isAdmOrGer = isAdmin||isGer;
 
-  // Checklist: para admin/gerencia mostra total de envios do dia, para operador mostra progresso local
-  var today = getLocalDate();
+  var agora = new Date();
+  var hojeStr = agora.toLocaleDateString('pt-BR');
+  var ontemDate = new Date(agora); ontemDate.setDate(ontemDate.getDate()-1);
+  var ontemStr = ontemDate.toLocaleDateString('pt-BR');
+
   var resultados = getResultados();
-  var resultadosHoje = resultados.filter(function(r){ return r.dataHora && r.dataHora.indexOf(new Date().toLocaleDateString('pt-BR'))===0; });
+  var resultadosHoje = resultados.filter(function(r){ return r.dataHora && r.dataHora.indexOf(hojeStr)===0; });
+  var resultadosOntem = resultados.filter(function(r){ return r.dataHora && r.dataHora.indexOf(ontemStr)===0; });
+
+  // ── Header ──
+  var lojaNome = (S.currentUser && S.currentUser.loja) ? S.currentUser.loja : 'Cahu360';
+  var dataFull = agora.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  var lojaNomeEl = document.getElementById('dash-loja-nome');
+  var dataFullEl = document.getElementById('dash-data-full');
+  if (lojaNomeEl) lojaNomeEl.textContent = lojaNome;
+  if (dataFullEl) dataFullEl.textContent = dataFull.charAt(0).toUpperCase()+dataFull.slice(1);
 
   if (isAdmOrGer) {
-    // Admin vê total de envios de todos os usuários hoje
     var totalEnvios = resultadosHoje.length;
     var completos = resultadosHoje.filter(function(r){return r.pct===100;}).length;
     var mediaGeral = totalEnvios ? Math.round(resultadosHoje.reduce(function(s,r){return s+r.pct;},0)/totalEnvios) : 0;
-    document.getElementById('dck-val').textContent=completos+'/'+totalEnvios+' envios';
-    document.getElementById('dck-bar').style.width=mediaGeral+'%';
-    document.getElementById('dck-pct').textContent=totalEnvios ? mediaGeral+'% média hoje' : 'Nenhum envio hoje';
+
+    // KPI: Checklists Hoje
+    document.getElementById('dck-val').textContent = completos+'/'+totalEnvios+' envios';
+    document.getElementById('dck-bar').style.width = mediaGeral+'%';
+    document.getElementById('dck-pct').textContent = totalEnvios ? mediaGeral+'% média hoje' : 'Nenhum envio hoje';
+
+    // KPI: Conformidade
+    var dconfEl = document.getElementById('dconf-val');
+    var dconfSubEl = document.getElementById('dconf-sub');
+    if (dconfEl) {
+      dconfEl.textContent = totalEnvios ? mediaGeral+'%' : '—';
+      dconfEl.style.color = mediaGeral>=80 ? 'var(--g)' : mediaGeral>=60 ? 'var(--am)' : totalEnvios ? 'var(--r)' : 'var(--t3)';
+    }
+    if (dconfSubEl) dconfSubEl.textContent = '100% completos: '+completos;
+
+    // Trends (vs ontem)
+    var mediOntem = resultadosOntem.length ? Math.round(resultadosOntem.reduce(function(s,r){return s+r.pct;},0)/resultadosOntem.length) : null;
+    var trendCkEl = document.getElementById('dck-trend');
+    var trendConfEl = document.getElementById('dconf-trend');
+    if (mediOntem !== null) {
+      var diff = mediaGeral - mediOntem;
+      var trendTxt = (diff>=0?'↑':'↓')+' '+Math.abs(diff)+'% vs ontem';
+      var trendCor = diff>=0 ? 'var(--g)' : 'var(--r)';
+      if (trendCkEl) { trendCkEl.textContent=trendTxt; trendCkEl.style.color=trendCor; }
+      if (trendConfEl) { trendConfEl.textContent=trendTxt; trendConfEl.style.color=trendCor; }
+    } else {
+      if (trendCkEl) trendCkEl.textContent='';
+      if (trendConfEl) trendConfEl.textContent='';
+    }
+
+    // KPI: Operadores ativos
+    var opsAtivos = [];
+    resultadosHoje.forEach(function(r){ if(opsAtivos.indexOf(r.operador)<0) opsAtivos.push(r.operador); });
+    var dopsEl = document.getElementById('dops-val');
+    var dopsSubEl = document.getElementById('dops-sub');
+    if (dopsEl) dopsEl.textContent = opsAtivos.length;
+    if (dopsSubEl) dopsSubEl.textContent = opsAtivos.length===1 ? 'operador enviou hoje' : 'operadores enviaram hoje';
+
+    // Indicador de saúde
+    var saudeDot = document.getElementById('dash-saude-dot');
+    var saudeLabel = document.getElementById('dash-saude-label');
+    var saudeEl = document.getElementById('dash-saude');
+    if (saudeDot && saudeLabel) {
+      if (!totalEnvios) {
+        saudeDot.style.background='#9ca3af'; saudeLabel.textContent='Aguardando envios'; saudeLabel.style.color='var(--t3)';
+        if (saudeEl) saudeEl.style.borderColor='var(--gray2)';
+      } else if (mediaGeral>=80) {
+        saudeDot.style.background='var(--g2)'; saudeLabel.textContent='Operação normal'; saudeLabel.style.color='var(--g)';
+        if (saudeEl) saudeEl.style.borderColor='var(--g2)';
+      } else if (mediaGeral>=60) {
+        saudeDot.style.background='var(--am)'; saudeLabel.textContent='Atenção necessária'; saudeLabel.style.color='var(--am)';
+        if (saudeEl) saudeEl.style.borderColor='var(--am)';
+      } else {
+        saudeDot.style.background='var(--r)'; saudeLabel.textContent='Conformidade crítica'; saudeLabel.style.color='var(--r)';
+        if (saudeEl) saudeEl.style.borderColor='var(--r)';
+      }
+    }
+
+    // Status da equipe
+    var dashEquipe = document.getElementById('dash-equipe');
+    var dashEquipeResumo = document.getElementById('dash-equipe-resumo');
+    if (dashEquipe) {
+      var users = getUsers().filter(function(u){ return u.id!=='admin' && u.ativo; });
+      if (!users.length) {
+        dashEquipe.innerHTML='<div style="text-align:center;color:var(--t3);font-size:13px;padding:20px;grid-column:1/-1">Nenhum usuário cadastrado</div>';
+      } else {
+        var enviados=0;
+        var perfisLabel={gerencia:'Gerência',operator:'Operador',prevencao:'Prevenção'};
+        dashEquipe.innerHTML = users.map(function(u){
+          var urs = resultadosHoje.filter(function(r){return r.operador===u.nome;});
+          var enviou = urs.length>0;
+          var media = enviou ? Math.round(urs.reduce(function(s,r){return s+r.pct;},0)/urs.length) : null;
+          if (enviou) enviados++;
+          var cor = !enviou?'#9ca3af':media===100?'var(--g2)':media>=80?'#2d9e62':media>=60?'var(--am)':'var(--r)';
+          var bg  = !enviou?'var(--gray)':media===100?'var(--g3)':media>=60?'var(--am2)':'var(--r2)';
+          return '<div style="padding:10px 12px;border-radius:10px;background:'+bg+';border:1.5px solid '+cor+'">'
+            +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">'
+            +'<div style="width:8px;height:8px;border-radius:50%;background:'+cor+';flex-shrink:0"></div>'
+            +'<div style="font-size:12px;font-weight:600;color:var(--t);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+u.nome+'</div>'
+            +'</div>'
+            +'<div style="font-size:10px;color:var(--t3);margin-bottom:4px">'+(perfisLabel[u.perfil]||u.perfil)+'</div>'
+            +(enviou
+              ?'<div style="font-size:14px;font-weight:800;color:'+cor+'">'+media+'%</div>'
+               +'<div style="font-size:10px;color:var(--t3)">'+urs.length+' envio'+(urs.length>1?'s':'')+'</div>'
+              :'<div style="font-size:11px;color:#9ca3af;font-weight:600">Pendente</div>')
+            +'</div>';
+        }).join('');
+        if (dashEquipeResumo) dashEquipeResumo.textContent = enviados+' de '+users.length+' enviaram';
+      }
+    }
+
+    // Atualizar gráfico de perdas com dados reais
+    if (S.dashCharts && S.dashCharts.perdas) {
+      var setoresPerd = ['Perecíveis','Açougue','Frios','Hortifruti','Mercearia','Padaria','Outros'];
+      var outrosSetores = ['Bebidas','Limpeza','Caixa'];
+      var perdaData = setoresPerd.map(function(s){
+        return S.perdaItems.filter(function(p){
+          return s==='Outros' ? outrosSetores.indexOf(p.setor)>=0 : p.setor===s;
+        }).reduce(function(acc,p){return acc+p.total;},0);
+      });
+      S.dashCharts.perdas.data.datasets[0].data = perdaData;
+      S.dashCharts.perdas.update();
+    }
+
+    // Atualizar gráfico de evolução 7 dias
+    if (S.dashCharts && S.dashCharts.check) {
+      var labels7=[]; var days7=[];
+      for (var i=6;i>=0;i--) {
+        var d=new Date(agora); d.setDate(d.getDate()-i);
+        days7.push(d.toLocaleDateString('pt-BR'));
+        labels7.push(d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}));
+      }
+      var data7 = days7.map(function(ds){
+        var dr=resultados.filter(function(r){return r.dataHora&&r.dataHora.indexOf(ds)===0;});
+        return dr.length ? Math.round(dr.reduce(function(s,r){return s+r.pct;},0)/dr.length) : null;
+      });
+      S.dashCharts.check.data.labels = labels7;
+      S.dashCharts.check.data.datasets[0].data = data7;
+      S.dashCharts.check.update();
+    }
+
   } else {
-    // Operador vê seu próprio progresso local
+    // Operador: progresso local
     var allCLs=getMyCLs();
     var allKeys=[];
     allCLs.forEach(function(cl){cl.itens.forEach(function(i){allKeys.push(cl.id+'_'+i.t);});});
@@ -2216,22 +2345,25 @@ function updateDash() {
     document.getElementById('dck-pct').textContent=pct+'% concluído';
   }
 
+  // Perdas (comum a todos)
   var totalP=S.perdaItems.reduce(function(s,i){return s+i.total;},0);
   document.getElementById('dp-val').textContent='R$ '+totalP.toFixed(2);
   document.getElementById('dp-cnt').textContent=S.perdaItems.length+' registros';
-  var divs=S.invItems.filter(function(i){return i.fis!==i.sist;}).length;
-  document.getElementById('ddiv-val').textContent=divs;
-  document.getElementById('dinv-val').textContent=S.invItems.length;
 
-  // Histórico: admin vê todos os envios do localStorage + sessão local; operador vê só sessão
+  // Compat: ddiv-val e dinv-val (ocultos)
+  var divs=S.invItems.filter(function(i){return i.fis!==i.sist;}).length;
+  var ddivEl=document.getElementById('ddiv-val');
+  var dinvEl=document.getElementById('dinv-val');
+  if (ddivEl) ddivEl.textContent=divs;
+  if (dinvEl) dinvEl.textContent=S.invItems.length;
+
+  // Histórico / Ocorrências
   var tbody=document.getElementById('d-hist');
-  var rows = [];
+  var rows=[];
 
   if (isAdmOrGer) {
-    // Mostrar resultados de checklists enviados hoje por todos
-    var PLABEL={admin:'Administrador',gerencia:'Gerência',operator:'Operador',prevencao:'Prevenção'};
     resultadosHoje.slice().reverse().slice(0,10).forEach(function(r){
-      var st = r.pct===100?'st-ok':r.pct>=50?'st-warn':'st-err';
+      var st=r.pct===100?'st-ok':r.pct>=50?'st-warn':'st-err';
       rows.push('<tr>'
         +'<td>'+r.dataHora.split(' ')[1]+'</td>'
         +'<td><span class="st st-info">Checklist</span></td>'
@@ -2241,9 +2373,8 @@ function updateDash() {
         +'<td><span class="st '+st+'">'+r.pct+'%</span></td>'
         +'</tr>');
     });
-    // Also add local session events
     S.historico.slice(0,5).forEach(function(h){
-      if (h.tipo !== 'Checklist') {
+      if (h.tipo!=='Checklist') {
         rows.push('<tr><td>'+h.hora+'</td><td><span class="st st-info">'+h.tipo+'</span></td><td>'+h.desc+'</td><td>'+h.setor+'</td><td>'+h.op+'</td><td><span class="st '+h.stCls+'">'+h.stLabel+'</span></td></tr>');
       }
     });
@@ -2253,33 +2384,66 @@ function updateDash() {
     });
   }
 
-  if (!rows.length) {
-    tbody.innerHTML='<tr class="erow"><td colspan="6">Nenhuma ocorrência hoje</td></tr>';
-  } else {
-    tbody.innerHTML = rows.join('');
-  }
+  var occCount=document.getElementById('dash-occ-count');
+  if (occCount) occCount.textContent=rows.length ? rows.length+' ocorrência'+(rows.length>1?'s':'') : '';
+
+  tbody.innerHTML=rows.length ? rows.join('') : '<tr class="erow"><td colspan="6">Nenhuma ocorrência hoje</td></tr>';
 }
 
 // ===========================================
 // CHARTS
 // ===========================================
 function initDashCharts() {
+  // Destroi charts anteriores se existirem
+  if (S.dashCharts.perdas) { try{S.dashCharts.perdas.destroy();}catch(e){} }
+  if (S.dashCharts.check)  { try{S.dashCharts.check.destroy();}catch(e){} }
+
+  // Gráfico de perdas por setor — dados reais preenchidos por updateDash()
   S.dashCharts.perdas = new Chart(document.getElementById('chartPerdas'),{
     type:'doughnut',
-    data:{labels:['Perecíveis','Açougue','Frios','Hortifruti','Mercearia','Outros'],
-      datasets:[{data:[32,18,20,14,10,6],backgroundColor:['#c0392b','#a93226','#1a5276','#2d9e62','#d68910','#95a5a6'],borderWidth:3,borderColor:'#fff'}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12}}}}
+    data:{
+      labels:['Perecíveis','Açougue','Frios','Hortifruti','Mercearia','Padaria','Outros'],
+      datasets:[{
+        data:[0,0,0,0,0,0,0],
+        backgroundColor:['#c0392b','#a93226','#1a5276','#2d9e62','#d68910','#8e44ad','#95a5a6'],
+        borderWidth:3,borderColor:'#fff'
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'right',labels:{font:{size:11},boxWidth:12}},
+        tooltip:{callbacks:{label:function(ctx){return ctx.label+': R$ '+ctx.parsed.toFixed(2);}}}
+      }
+    }
   });
-  var labels=getMyCLs().map(function(cl){return cl.label.substring(0,18);});
-  var data=getMyCLs().map(function(cl){
-    var all=cl.itens.map(function(i){return cl.id+'_'+i.t;});
-    var d=all.filter(function(k){return S.checkState[k];}).length;
-    return all.length?Math.round(d/all.length*100):0;
-  });
+
+  // Gráfico de evolução de conformidade — últimos 7 dias (linha)
   S.dashCharts.check = new Chart(document.getElementById('chartCheck'),{
-    type:'bar',
-    data:{labels:labels,datasets:[{label:'%',data:data,backgroundColor:'#2d9e62',borderRadius:5}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{max:100,ticks:{callback:function(v){return v+'%';},font:{size:11}}}}}
+    type:'line',
+    data:{
+      labels:['','','','','','',''],
+      datasets:[{
+        label:'Conformidade %',
+        data:[null,null,null,null,null,null,null],
+        borderColor:'#2d9e62',
+        backgroundColor:'rgba(45,158,98,.12)',
+        borderWidth:2,
+        pointBackgroundColor:'#2d9e62',
+        pointRadius:4,
+        fill:true,
+        tension:.35,
+        spanGaps:true
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        y:{min:0,max:100,ticks:{callback:function(v){return v+'%';},font:{size:11}}},
+        x:{ticks:{font:{size:11}}}
+      }
+    }
   });
 }
 
