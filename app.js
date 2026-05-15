@@ -3527,15 +3527,23 @@ var _negativosCache = [];
 // ── Firebase ──
 function loadNegativosFromFirebase(callback) {
   var u = S.currentUser;
+  // Sem orderBy para evitar exigência de índice composto no Firestore
+  // Ordenação feita em JS após carregar
   var q = db.collection('negativos');
-  // Admin vê tudo; gerência/operador vê só da sua loja
   if (u && u.perfil !== 'admin') {
     q = q.where('loja', '==', u.loja || '');
   }
-  q.orderBy('criadoEm', 'desc').get().then(function(snap) {
+  q.get().then(function(snap) {
     _negativosCache = snap.docs.map(function(d) { return d.data(); });
+    // Ordena por data de criação decrescente (mais recente primeiro)
+    _negativosCache.sort(function(a, b) {
+      return (b.criadoEm || '') > (a.criadoEm || '') ? 1 : -1;
+    });
     if (callback) callback();
-  }).catch(function() { if (callback) callback(); });
+  }).catch(function(e) {
+    console.warn('Negativos load error:', e);
+    if (callback) callback();
+  });
 }
 
 function salvarNegativoFirebase(neg, callback) {
@@ -3701,9 +3709,16 @@ function confirmarEnvioNegativo() {
   var titulo = document.getElementById('neg-titulo').value.trim();
   var loja   = document.getElementById('neg-loja-dest').value.trim();
   var err    = document.getElementById('neg-import-err');
+  err.style.display = 'none';
+
   if (!titulo) { err.textContent='Informe o título do envio.'; err.style.display='block'; return; }
   if (!loja)   { err.textContent='Informe a loja destino.'; err.style.display='block'; return; }
-  if (!_excelImportado.length) { err.textContent='Importe um arquivo Excel primeiro.'; err.style.display='block'; return; }
+  if (!_excelImportado.length) { err.textContent='Importe um arquivo Excel primeiro (.xlsx).'; err.style.display='block'; return; }
+
+  // Feedback visual no botão
+  var btn = document.querySelector('#modal-neg-import .btn-p');
+  if (btn) { btn.textContent = 'Enviando...'; btn.disabled = true; }
+
   var agora = new Date();
   var neg = {
     id: genId(),
@@ -3717,11 +3732,20 @@ function confirmarEnvioNegativo() {
     respondidoEm: null,
     respondidoPor: null
   };
-  salvarNegativoFirebase(neg, function() {
+
+  db.collection('negativos').doc(neg.id).set(neg).then(function() {
     _negativosCache.unshift(neg);
     document.getElementById('modal-neg-import').style.display = 'none';
+    if (btn) { btn.textContent = 'Enviar para Loja'; btn.disabled = false; }
+    // Garante que lista admin esteja visível
+    var la = document.getElementById('neg-lista-admin');
+    if (la) la.style.display = 'block';
     renderNegativosAdmin();
-    showToast('Planilha enviada para ' + loja + '!');
+    showToast('✅ Planilha enviada para ' + loja + '!');
+  }).catch(function(e) {
+    if (btn) { btn.textContent = 'Enviar para Loja'; btn.disabled = false; }
+    err.textContent = 'Erro ao salvar: ' + (e.message || 'verifique sua conexão.');
+    err.style.display = 'block';
   });
 }
 
@@ -3775,16 +3799,24 @@ function submeterNegativo() {
     if (loc) item._localizacao = loc.value.trim();
   });
   var agora = new Date();
-  neg.status       = 'respondido';
+  neg.status        = 'respondido';
   neg.respondidoEm  = agora.toLocaleString('pt-BR');
   neg.respondidoPor = S.currentUser ? S.currentUser.nome : '-';
-  salvarNegativoFirebase(neg, function() {
-    // Atualiza cache
+
+  var btn = document.querySelector('#modal-neg-preencher .btn-p');
+  if (btn) { btn.textContent = 'Enviando...'; btn.disabled = true; }
+
+  db.collection('negativos').doc(neg.id).set(neg).then(function() {
     var idx = _negativosCache.findIndex(function(n){ return n.id === neg.id; });
     if (idx >= 0) _negativosCache[idx] = neg;
+    if (btn) { btn.textContent = '✅ Enviar Respostas'; btn.disabled = false; }
     document.getElementById('modal-neg-preencher').style.display = 'none';
     renderNegativosOp();
     showToast('Respostas enviadas com sucesso! ✅');
+  }).catch(function(e) {
+    if (btn) { btn.textContent = '✅ Enviar Respostas'; btn.disabled = false; }
+    var errEl = document.getElementById('neg-preencher-err');
+    if (errEl) { errEl.textContent = 'Erro ao enviar: ' + (e.message || 'verifique sua conexão.'); errEl.style.display = 'block'; }
   });
 }
 
