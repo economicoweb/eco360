@@ -1889,12 +1889,42 @@ function verDetalhe(idx) {
     } else if (item.foto && item.foto !== 'none') {
       fotoHtml = '<div style="font-size:11px;color:var(--am);margin-top:4px;padding:6px 10px;background:var(--am2);border-radius:6px">📷 Foto obrigatória não enviada</div>';
     }
-    return '<div style="padding:12px 14px;border-radius:10px;margin-bottom:8px;border:1px solid var(--gray2);background:'+(item.feito?'var(--g3)':'#fff')+'">'
+    // ── Badge de resposta baseado no tipo ──
+    var tipo = item.tipo || 'sim_nao';
+    var val  = item.valor;
+    var itemBg = item.feito ? 'var(--g3)' : (tipo==='sim_nao' && val==='nao') ? '#fdecea' : '#fff';
+    var respostaHtml = '';
+    if (tipo === 'nota') {
+      var nota = typeof val === 'number' ? val : 0;
+      respostaHtml = '<div style="display:flex;gap:3px;margin-top:6px;align-items:center">'
+        + [1,2,3,4,5].map(function(n){
+            return '<span style="width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;border:1.5px solid var(--gray2);font-size:12px;font-weight:700;background:'+(nota>=n?'var(--am)':'#fff')+';color:'+(nota>=n?'#000':'var(--t3)')+'">'+n+'</span>';
+          }).join('')
+        + (nota ? '<span style="font-size:11px;color:var(--t2);margin-left:6px">'+nota+'/5</span>' : '<span style="font-size:11px;color:var(--t3);margin-left:6px">Não respondido</span>')
+        + '</div>';
+    } else if (tipo === 'texto') {
+      respostaHtml = val && val.trim()
+        ? '<div style="margin-top:6px;padding:8px 10px;background:#f0f4ff;border:1px solid #c5d2f6;border-radius:8px;font-size:13px;color:var(--t);line-height:1.4">'+val+'</div>'
+        : '<div style="margin-top:4px;font-size:11px;color:var(--t3)">Sem resposta</div>';
+    } else {
+      // sim_nao (incluindo resultados antigos sem tipo)
+      var isSim = val === true || (val === undefined && item.feito === true);
+      var isNao = val === 'nao';
+      if (isSim) {
+        respostaHtml = '<span style="display:inline-block;margin-top:5px;font-size:11px;font-weight:700;padding:3px 10px;border-radius:8px;background:var(--g);color:#fff">✓ Sim</span>';
+      } else if (isNao) {
+        respostaHtml = '<span style="display:inline-block;margin-top:5px;font-size:11px;font-weight:700;padding:3px 10px;border-radius:8px;background:#fdecea;color:var(--r);border:1px solid #fac5c0">✗ Não</span>';
+      } else {
+        respostaHtml = '<span style="display:inline-block;margin-top:5px;font-size:11px;color:var(--t3)">Não respondido</span>';
+      }
+    }
+    return '<div style="padding:12px 14px;border-radius:10px;margin-bottom:8px;border:1px solid var(--gray2);background:'+itemBg+'">'
       +'<div style="display:flex;align-items:flex-start;gap:10px">'
-      +'<span style="font-size:18px;margin-top:1px;flex-shrink:0">'+(item.feito?'✅':'⬜')+'</span>'
+      +'<span style="font-size:18px;margin-top:1px;flex-shrink:0">'+(item.feito?'✅':(tipo==='sim_nao'&&val==='nao'?'🔴':'⬜'))+'</span>'
       +'<div style="flex:1;min-width:0">'
-      +'<div style="font-size:13px;font-weight:600;'+(item.feito?'text-decoration:line-through;color:var(--t3)':'color:var(--t)')+'">'+item.texto+'</div>'
+      +'<div style="font-size:13px;font-weight:600;'+(item.feito?'color:var(--t3)':'color:var(--t)')+'">'+item.texto+'</div>'
       +(item.obs ? '<div style="font-size:11px;color:var(--t3);margin-top:2px">'+item.obs+'</div>' : '')
+      +respostaHtml
       +fotoHtml
       +'</div></div></div>';
   }).join('');
